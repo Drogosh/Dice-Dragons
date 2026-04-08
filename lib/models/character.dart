@@ -135,6 +135,14 @@ class Character {
     skills[skill]!.isProficient = isProficient;
   }
 
+  /// Получить пассивную внимательность (Passive Perception)
+  int getPassivePerception() {
+    final wisdomMod = getWisdomModifier();
+    final perceptionSkill = skills[Skill.perception];
+    final profBonus = perceptionSkill!.isProficient ? proficiencyBonus : 0;
+    return 10 + wisdomMod + profBonus;
+  }
+
   // Метод для получения модификатора характеристики (полезен для D&D)
   int getAbilityModifier(int abilityScore) {
     return (abilityScore - 10) ~/ 2;

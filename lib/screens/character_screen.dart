@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/character.dart';
-import '../models/item.dart';
+import '../widgets/stat_card.dart';
 
 class CharacterScreen extends StatefulWidget {
   final Character character;
@@ -32,11 +32,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Информация о персонаже (имя, уровень, ХП, КБ)
-            _buildCharacterInfo(context),
-            const SizedBox(height: 24),
             // Характеристики и модификаторы
             _buildAbilitiesSection(context),
+            const SizedBox(height: 24),
+            // Пассивная внимательность
+            _buildPassivePerceptionSection(context),
             const SizedBox(height: 24),
             // Навыки
             _buildSkillsSection(context),
@@ -47,50 +47,16 @@ class _CharacterScreenState extends State<CharacterScreen> {
   }
 
   // Информация о персонаже
-  Widget _buildCharacterInfo(BuildContext context) {
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Информация о персонаже',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 12),
-            _buildInfoRow('Имя:', character.name),
-            _buildInfoRow('Уровень:', '${character.level}'),
-            _buildInfoRow('Здоровье (ХП):', '${character.hp}'),
-            _buildInfoRow('Класс брони (КБ):', '${character.ac}'),
-          ],
-        ),
-      ),
-    );
-  }
+  // Widget _buildCharacterInfo(BuildContext context) {
+  //   ...removed...
+  // }
 
   // Строка информации
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildInfoRow(String label, String value) {
+  //   ...removed...
+  // }
 
-  // Секция характеристик
+
   Widget _buildAbilitiesSection(BuildContext context) {
     return Card(
       elevation: 2,
@@ -100,7 +66,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Характеристики и модификаторы',
+              'Характеристики: ',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -110,137 +76,106 @@ class _CharacterScreenState extends State<CharacterScreen> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.9,
+              childAspectRatio: 0.95,
               children: [
-                _buildAbilityCard(
-                  'Сила',
-                  'STR',
-                  character.strength,
-                  character.getStrengthModifier(),
+                StatCard(
+                  name: 'Сила',
+                  abbreviation: 'STR',
+                  value: character.strength,
+                  modifier: character.getStrengthModifier(),
+                  isSelected: _isAbilitySelected('Сила'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Сила')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Сила');
+                      }
+                    });
+                  },
                 ),
-                _buildAbilityCard(
-                  'Ловкость',
-                  'DEX',
-                  character.dexterity,
-                  character.getDexterityModifier(),
+                StatCard(
+                  name: 'Ловкость',
+                  abbreviation: 'DEX',
+                  value: character.dexterity,
+                  modifier: character.getDexterityModifier(),
+                  isSelected: _isAbilitySelected('Ловкость'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Ловкость')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Ловкость');
+                      }
+                    });
+                  },
                 ),
-                _buildAbilityCard(
-                  'Телосложение',
-                  'CON',
-                  character.constitution,
-                  character.getConstitutionModifier(),
+                StatCard(
+                  name: 'Телоc.',
+                  abbreviation: 'CON',
+                  value: character.constitution,
+                  modifier: character.getConstitutionModifier(),
+                  isSelected: _isAbilitySelected('Телосложение'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Телосложение')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Телосложение');
+                      }
+                    });
+                  },
                 ),
-                _buildAbilityCard(
-                  'Интеллект',
-                  'INT',
-                  character.intelligence,
-                  character.getIntelligenceModifier(),
+                StatCard(
+                  name: 'Интел.',
+                  abbreviation: 'INT',
+                  value: character.intelligence,
+                  modifier: character.getIntelligenceModifier(),
+                  isSelected: _isAbilitySelected('Интеллект'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Интеллект')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Интеллект');
+                      }
+                    });
+                  },
                 ),
-                _buildAbilityCard(
-                  'Мудрость',
-                  'WIS',
-                  character.wisdom,
-                  character.getWisdomModifier(),
+                StatCard(
+                  name: 'Мудрость',
+                  abbreviation: 'WIS',
+                  value: character.wisdom,
+                  modifier: character.getWisdomModifier(),
+                  isSelected: _isAbilitySelected('Мудрость'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Мудрость')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Мудрость');
+                      }
+                    });
+                  },
                 ),
-                _buildAbilityCard(
-                  'Харизма',
-                  'CHA',
-                  character.charisma,
-                  character.getCharismaModifier(),
+                StatCard(
+                  name: 'Харизма',
+                  abbreviation: 'CHA',
+                  value: character.charisma,
+                  modifier: character.getCharismaModifier(),
+                  isSelected: _isAbilitySelected('Харизма'),
+                  onTap: () {
+                    setState(() {
+                      if (_isAbilitySelected('Харизма')) {
+                        selectedSkillFilter = null;
+                      } else {
+                        selectedSkillFilter = _getFirstSkillForAbility('Харизма');
+                      }
+                    });
+                  },
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Карточка характеристики
-  Widget _buildAbilityCard(
-    String name,
-    String abbreviation,
-    int score,
-    int modifier,
-  ) {
-    final modifierColor = modifier >= 0 ? Colors.green : Colors.red;
-    final isSelected = selectedSkillFilter != null &&
-        _getAbilityForSkill(selectedSkillFilter!) == _getAbilityNameForSkill(selectedSkillFilter!).split('(')[1].replaceAll(')', '');
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          // Если уже выбрана эта характеристика, снимаем фильтр
-          if (_isAbilitySelected(name)) {
-            selectedSkillFilter = null;
-          } else {
-            // Иначе устанавливаем фильтр на навыки этой характеристики
-            selectedSkillFilter = _getFirstSkillForAbility(name);
-          }
-        });
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: _isAbilitySelected(name)
-                ? Colors.amber[700]!
-                : Theme.of(context).colorScheme.primary,
-            width: _isAbilitySelected(name) ? 3 : 2,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          color: _isAbilitySelected(name) ? Colors.amber[50] : null,
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              abbreviation,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              name,
-              style: const TextStyle(fontSize: 10),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$score',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                  TextSpan(
-                    text: ' (${modifier >= 0 ? '+' : ''}$modifier)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: modifierColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-            const SizedBox(height: 4),
           ],
         ),
       ),
@@ -300,7 +235,31 @@ class _CharacterScreenState extends State<CharacterScreen> {
         .toList();
   }
 
-  // Секция навыков
+  // Секция пассивной внимательности
+  Widget _buildPassivePerceptionSection(BuildContext context) {
+    final passivePerception = character.getPassivePerception();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Пассивная внимательность:',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          Text(
+            '$passivePerception',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
   Widget _buildSkillsSection(BuildContext context) {
     final filteredSkills = _getFilteredSkills();
 

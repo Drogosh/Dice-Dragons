@@ -80,7 +80,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
-            label: 'Персонаж',
+            label: 'Характеристики',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.backpack),
@@ -103,6 +103,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
+
 
 
 

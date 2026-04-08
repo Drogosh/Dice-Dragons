@@ -23,6 +23,358 @@ class _InventoryScreenState extends State<InventoryScreen> {
     inventory = widget.inventory;
   }
 
+  void _showAddItemDialog() {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final damageController = TextEditingController();
+    final bonusController = TextEditingController();
+    final acController = TextEditingController();
+
+    ItemType selectedType = ItemType.miscellaneous;
+    DamageType? selectedDamageType = DamageType.slashing;
+    ArmorType? selectedArmorType = ArmorType.light;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Добавить предмет'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Название предмета',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Описание',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<ItemType>(
+                  value: selectedType,
+                  isExpanded: true,
+                  items: ItemType.values.map((type) {
+                    String label = _getTypeLabel(type);
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(label),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedType = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Поля для оружия
+                if (selectedType == ItemType.weapon) ...[
+                  TextField(
+                    controller: damageController,
+                    decoration: const InputDecoration(
+                      labelText: 'Урон (например: 1d8)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Тип урона:'),
+                  DropdownButton<DamageType>(
+                    value: selectedDamageType,
+                    isExpanded: true,
+                    items: DamageType.values.map((type) {
+                      String label = _getDamageTypeLabel(type);
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedDamageType = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Поля для брони
+                if (selectedType == ItemType.armor) ...[
+                  TextField(
+                    controller: acController,
+                    decoration: const InputDecoration(
+                      labelText: 'Класс брони',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Тип брони:'),
+                  DropdownButton<ArmorType>(
+                    value: selectedArmorType,
+                    isExpanded: true,
+                    items: ArmorType.values.map((type) {
+                      String label = _getArmorTypeLabel(type);
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedArmorType = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Бонус для всех
+                TextField(
+                  controller: bonusController,
+                  decoration: const InputDecoration(
+                    labelText: 'Бонус (опционально)',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.isNotEmpty) {
+                  final newItem = Item(
+                    name: nameController.text,
+                    type: selectedType,
+                    description: descriptionController.text,
+                    bonus: int.tryParse(bonusController.text) ?? 0,
+                    damage: selectedType == ItemType.weapon
+                        ? damageController.text.isNotEmpty
+                            ? damageController.text
+                            : null
+                        : null,
+                    damageType: selectedType == ItemType.weapon
+                        ? selectedDamageType
+                        : null,
+                    armorClass: selectedType == ItemType.armor
+                        ? int.tryParse(acController.text)
+                        : null,
+                    armorType: selectedType == ItemType.armor
+                        ? selectedArmorType
+                        : null,
+                  );
+                  setState(() {
+                    inventory.addItem(newItem);
+                  });
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Добавить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditItemDialog(int index) {
+    final item = inventory.items[index];
+    final nameController = TextEditingController(text: item.name);
+    final descriptionController = TextEditingController(text: item.description);
+    final damageController = TextEditingController(text: item.damage ?? '');
+    final bonusController = TextEditingController(text: item.bonus.toString());
+    final acController = TextEditingController(
+      text: item.armorClass?.toString() ?? '',
+    );
+
+    ItemType selectedType = item.type;
+    DamageType? selectedDamageType = item.damageType ?? DamageType.slashing;
+    ArmorType? selectedArmorType = item.armorType ?? ArmorType.light;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Редактировать предмет'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Название предмета',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(
+                    labelText: 'Описание',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 16),
+                DropdownButton<ItemType>(
+                  value: selectedType,
+                  isExpanded: true,
+                  items: ItemType.values.map((type) {
+                    String label = _getTypeLabel(type);
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(label),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        selectedType = value;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Поля для оружия
+                if (selectedType == ItemType.weapon) ...[
+                  TextField(
+                    controller: damageController,
+                    decoration: const InputDecoration(
+                      labelText: 'Урон (например: 1d8)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Тип урона:'),
+                  DropdownButton<DamageType>(
+                    value: selectedDamageType,
+                    isExpanded: true,
+                    items: DamageType.values.map((type) {
+                      String label = _getDamageTypeLabel(type);
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedDamageType = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Поля для брони
+                if (selectedType == ItemType.armor) ...[
+                  TextField(
+                    controller: acController,
+                    decoration: const InputDecoration(
+                      labelText: 'Класс брони',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Тип брони:'),
+                  DropdownButton<ArmorType>(
+                    value: selectedArmorType,
+                    isExpanded: true,
+                    items: ArmorType.values.map((type) {
+                      String label = _getArmorTypeLabel(type);
+                      return DropdownMenuItem(
+                        value: type,
+                        child: Text(label),
+                      );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          selectedArmorType = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Бонус для всех
+                TextField(
+                  controller: bonusController,
+                  decoration: const InputDecoration(
+                    labelText: 'Бонус',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  inventory.items[index] = Item(
+                    name: nameController.text,
+                    type: selectedType,
+                    description: descriptionController.text,
+                    bonus: int.tryParse(bonusController.text) ?? 0,
+                    damage: selectedType == ItemType.weapon
+                        ? damageController.text.isNotEmpty
+                            ? damageController.text
+                            : null
+                        : null,
+                    damageType: selectedType == ItemType.weapon
+                        ? selectedDamageType
+                        : null,
+                    armorClass: selectedType == ItemType.armor
+                        ? int.tryParse(acController.text)
+                        : null,
+                    armorType: selectedType == ItemType.armor
+                        ? selectedArmorType
+                        : null,
+                  );
+                });
+                Navigator.pop(context);
+              },
+              child: const Text('Сохранить'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -31,16 +383,35 @@ class _InventoryScreenState extends State<InventoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Инвентарь',
-              style: Theme.of(context).textTheme.headlineSmall,
+            // Заголовок и кнопка добавления
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Инвентарь (${inventory.getItemCount()})',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                ElevatedButton.icon(
+                  onPressed: _showAddItemDialog,
+                  icon: const Icon(Icons.add),
+                  label: const Text('Добавить'),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
+
+            // Список предметов
             if (inventory.items.isEmpty)
               Center(
-                child: Text(
-                  'Инвентарь пуст',
-                  style: TextStyle(color: Colors.grey[600]),
+                child: Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Text(
+                    'Инвентарь пуст',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
                 ),
               )
             else
@@ -51,16 +422,70 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 itemBuilder: (context, index) {
                   final item = inventory.items[index];
                   return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
                     child: ListTile(
-                      title: Text(item.name),
-                      subtitle: Text(item.description),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          setState(() {
-                            inventory.removeItemAt(index);
-                          });
-                        },
+                      title: Text(
+                        item.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _getTypeColor(item.type),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            child: Text(
+                              _getItemTypeDisplay(item),
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                          if (item.bonus > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.green[100],
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                '+${item.bonus}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green[900],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      trailing: PopupMenuButton(
+                        itemBuilder: (context) => [
+                          PopupMenuItem(
+                            onTap: () => _showEditItemDialog(index),
+                            child: const Text('Редактировать'),
+                          ),
+                          PopupMenuItem(
+                            onTap: () {
+                              setState(() {
+                                inventory.removeItemAt(index);
+                              });
+                            },
+                            child: const Text('Удалить'),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -70,6 +495,100 @@ class _InventoryScreenState extends State<InventoryScreen> {
         ),
       ),
     );
+  }
+
+  String _getItemTypeDisplay(Item item) {
+    switch (item.type) {
+      case ItemType.weapon:
+        if (item.damage != null) {
+          return '⚔️ Оружие: ${item.damage}';
+        }
+        return 'Оружие';
+      case ItemType.armor:
+        if (item.armorClass != null) {
+          String armorTypeLabel = item.armorType != null
+              ? _getArmorTypeLabel(item.armorType!)
+              : '';
+          return '🛡️ Броня($armorTypeLabel): ${item.armorClass}';
+        }
+        return 'Броня';
+      case ItemType.accessory:
+        return 'Украшение';
+      case ItemType.consumable:
+        return 'Расходник';
+      case ItemType.miscellaneous:
+        return 'Прочее';
+    }
+  }
+
+  String _getTypeLabel(ItemType type) {
+    switch (type) {
+      case ItemType.weapon:
+        return 'Оружие';
+      case ItemType.armor:
+        return 'Броня';
+      case ItemType.accessory:
+        return 'Украшение';
+      case ItemType.consumable:
+        return 'Расходник';
+      case ItemType.miscellaneous:
+        return 'Прочее';
+    }
+  }
+
+  Color _getTypeColor(ItemType type) {
+    switch (type) {
+      case ItemType.weapon:
+        return Colors.red[400]!;
+      case ItemType.armor:
+        return Colors.blue[400]!;
+      case ItemType.accessory:
+        return Colors.purple[400]!;
+      case ItemType.consumable:
+        return Colors.green[400]!;
+      case ItemType.miscellaneous:
+        return Colors.grey[400]!;
+    }
+  }
+
+  String _getDamageTypeLabel(DamageType type) {
+    switch (type) {
+      case DamageType.slashing:
+        return 'Рубящий';
+      case DamageType.piercing:
+        return 'Колющий';
+      case DamageType.bludgeoning:
+        return 'Дробящий';
+      case DamageType.fire:
+        return 'Огонь';
+      case DamageType.cold:
+        return 'Холод';
+      case DamageType.lightning:
+        return 'Молния';
+      case DamageType.poison:
+        return 'Яд';
+      case DamageType.psychic:
+        return 'Психический';
+      case DamageType.radiant:
+        return 'Лучистый';
+      case DamageType.necrotic:
+        return 'Некротический';
+      case DamageType.force:
+        return 'Силовое поле';
+    }
+  }
+
+  String _getArmorTypeLabel(ArmorType type) {
+    switch (type) {
+      case ArmorType.light:
+        return 'Легкая';
+      case ArmorType.medium:
+        return 'Средняя';
+      case ArmorType.heavy:
+        return 'Тяжелая';
+      case ArmorType.shield:
+        return 'Щит';
+    }
   }
 }
 
