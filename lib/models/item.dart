@@ -1,29 +1,56 @@
+import 'package:hive/hive.dart';
+
+part 'item.g.dart';
+
+@HiveType(typeId: 0)
 enum ItemType {
+  @HiveField(0)
   weapon,
+  @HiveField(1)
   armor,
+  @HiveField(2)
   accessory,
+  @HiveField(3)
   consumable,
+  @HiveField(4)
   miscellaneous,
 }
 
+@HiveType(typeId: 1)
 enum DamageType {
+  @HiveField(0)
   slashing,     // Рубящий
+  @HiveField(1)
   piercing,     // Колющий
+  @HiveField(2)
   bludgeoning,  // Дробящий
+  @HiveField(3)
   fire,         // Огонь
+  @HiveField(4)
   cold,         // Холод
+  @HiveField(5)
   lightning,    // Молния
+  @HiveField(6)
   poison,       // Яд
+  @HiveField(7)
   psychic,      // Психический
+  @HiveField(8)
   radiant,      // Лучистый
+  @HiveField(9)
   necrotic,     // Некротический
+  @HiveField(10)
   force,        // Силовое поле
 }
 
+@HiveType(typeId: 2)
 enum ArmorType {
+  @HiveField(0)
   light,   // Легкая броня
+  @HiveField(1)
   medium,  // Средняя броня
+  @HiveField(2)
   heavy,   // Тяжелая броня
+  @HiveField(3)
   shield,  // Щит
 }
 
@@ -95,6 +122,20 @@ class Item {
   @override
   String toString() {
     return 'Item: $name (Type: ${type.name}, Bonus: $bonus)';
+  }
+
+  /// Создать копию предмета
+  Item copy() {
+    return Item(
+      name: name,
+      type: type,
+      description: description,
+      bonus: bonus,
+      damage: damage,
+      damageType: damageType,
+      armorClass: armorClass,
+      armorType: armorType,
+    );
   }
 }
 

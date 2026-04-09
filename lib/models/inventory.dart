@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'item.dart';
 
 class Inventory {
@@ -81,5 +82,13 @@ class Inventory {
     }
     return inventory;
   }
-}
 
+  String toJsonString() {
+    return jsonEncode(toList());
+  }
+
+  factory Inventory.fromJsonString(String jsonString) {
+    final list = jsonDecode(jsonString) as List<dynamic>;
+    return Inventory.fromList(list);
+  }
+}

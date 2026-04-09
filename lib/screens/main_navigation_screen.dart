@@ -62,17 +62,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: Text(widget.character.name),
         centerTitle: true,
       ),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: [
-          CharacterScreen(character: widget.character),
-          InventoryScreen(inventory: widget.inventory),
-          InfoScreen(character: widget.character),
-          const SpellsScreen(),
-          const NotesScreen(),
-        ],
-      ),
+       body: PageView(
+         controller: _pageController,
+         onPageChanged: _onPageChanged,
+         children: [
+           CharacterScreen(character: widget.character),
+           InventoryScreen(inventory: widget.inventory, character: widget.character),
+           InfoScreen(character: widget.character),
+           const SpellsScreen(),
+           const NotesScreen(),
+         ],
+       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: _onNavItemTapped,

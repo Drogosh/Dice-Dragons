@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "989858079176",
+    "project_id": "dice-and-dragons-db53f",
+    "storage_bucket": "dice-and-dragons-db53f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:989858079176:android:718584d54c254ba1cee0fd",
+        "android_client_info": {
+          "package_name": "com.example.dice_and_dragons"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgWc3xvYqpNil5OJaPfaxTF-rn2ZxjCt0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

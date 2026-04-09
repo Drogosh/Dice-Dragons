@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/character.dart';
+import '../services/firestore_service.dart';
 import '../widgets/stat_card.dart';
 
 class CharacterScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class CharacterScreen extends StatefulWidget {
 class _CharacterScreenState extends State<CharacterScreen> {
   late Character character;
   Skill? selectedSkillFilter;
+  bool _isEditingSkills = false;
 
   @override
   void initState() {
@@ -26,22 +29,83 @@ class _CharacterScreenState extends State<CharacterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Характеристики и модификаторы
-            _buildAbilitiesSection(context),
-            const SizedBox(height: 24),
-            // Пассивная внимательность
-            _buildPassivePerceptionSection(context),
-            const SizedBox(height: 24),
-            // Навыки
-            _buildSkillsSection(context),
-          ],
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/stats_bg.png'),
+          fit: BoxFit.cover,
+          opacity: 0.15, // Прозрачность фона
         ),
+      ),
+      child: Column(
+        children: [
+          // Заголовок с кнопкой редактирования
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const SizedBox(),
+                // Кнопка редактирования
+                Container(
+                  decoration: BoxDecoration(
+                    color: _isEditingSkills ? Colors.orange : Colors.grey[700],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _isEditingSkills ? Icons.check : Icons.edit,
+                      color: Colors.white,
+                    ),
+                    onPressed: () async {
+                      if (_isEditingSkills) {
+                        // Сохраняем на Firebase
+                        try {
+                          final firestoreService = FirestoreService();
+                          final userId = FirebaseAuth.instance.currentUser!.uid;
+                          await firestoreService.saveCharacter(userId, character);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Навыки сохранены')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Ошибка: $e')),
+                            );
+                          }
+                        }
+                      }
+                      setState(() => _isEditingSkills = !_isEditingSkills);
+                    },
+                    tooltip: _isEditingSkills ? 'Сохранить' : 'Редактировать',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Характеристики и модификаторы
+                    _buildAbilitiesSection(context),
+                    const SizedBox(height: 24),
+                    // Пассивная внимательность
+                    _buildPassivePerceptionSection(context),
+                    const SizedBox(height: 24),
+                    // Навыки
+                    _buildSkillsSection(context),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -320,22 +384,33 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6.0),
                     child: Row(
-                      children: [
-                        // Чекбокс для мастерства
-                        SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Checkbox(
-                            value: skill.isProficient,
-                            onChanged: (value) {
-                              setState(() {
-                                character.setProficiency(
-                                    skill.skill, value ?? false);
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+                       children: [
+                         // Чекбокс для мастерства (только если включен режим редактирования)
+                         if (_isEditingSkills)
+                           SizedBox(
+                             width: 24,
+                             height: 24,
+                             child: Checkbox(
+                               value: skill.isProficient,
+                               onChanged: (value) {
+                                 setState(() {
+                                   character.setProficiency(
+                                       skill.skill, value ?? false);
+                                 });
+                               },
+                             ),
+                           )
+                         else
+                           SizedBox(
+                             width: 24,
+                             height: 24,
+                             child: Icon(
+                               skill.isProficient ? Icons.check_circle : Icons.circle_outlined,
+                               size: 20,
+                               color: skill.isProficient ? Colors.green : Colors.grey,
+                             ),
+                           ),
+                         const SizedBox(width: 8),
                         // Название и характеристика
                         Expanded(
                           child: Column(

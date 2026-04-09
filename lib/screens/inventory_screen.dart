@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
+import '../models/character.dart';
 import '../models/inventory.dart';
 import '../models/item.dart';
+import 'item_database_screen.dart';
 
 class InventoryScreen extends StatefulWidget {
   final Inventory inventory;
+  final Character character;
 
   const InventoryScreen({
     super.key,
     required this.inventory,
+    required this.character,
   });
 
   @override
@@ -16,11 +20,13 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   late Inventory inventory;
+  late Character character;
 
   @override
   void initState() {
     super.initState();
     inventory = widget.inventory;
+    character = widget.character;
   }
 
   void _showAddItemDialog() {
@@ -199,6 +205,308 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  void _equipUnequipItem(Item item) {
+    if (item.type == ItemType.weapon) {
+      // Проверяем надеты ли это оружие
+      bool isEquipped = character.equippedWeapons.contains(item);
+
+      if (isEquipped) {
+        // Снимаем оружие
+        final slotIndex = character.equippedWeapons.indexOf(item);
+        character.unequipWeapon(slotIndex);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item.name} снято'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        // Ищем свободный слот
+        final emptySlot = character.equippedWeapons.indexWhere((w) => w == null);
+        if (emptySlot != -1) {
+          character.equipWeapon(emptySlot, item);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} надено (слот ${emptySlot + 1})'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Все слоты для оружия заняты'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+      }
+    } else if (item.type == ItemType.armor) {
+      if (item.armorType == ArmorType.shield) {
+        // Щит
+        if (character.equippedShield == item) {
+          character.equipShield(null);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} снято'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          character.equipShield(item);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} надено'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        // Броня
+        if (character.equippedArmor == item) {
+          character.equipArmor(null);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} снято'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          character.equipArmor(item);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} надено (AC: ${character.getCalculatedAC()})'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+
+    setState(() {});
+  }
+
+  bool _isItemEquipped(Item item) {
+    if (item.type == ItemType.weapon) {
+      return character.equippedWeapons.contains(item);
+    } else if (item.type == ItemType.armor) {
+      if (item.armorType == ArmorType.shield) {
+        return character.equippedShield == item;
+      } else {
+        return character.equippedArmor == item;
+      }
+    }
+    return false;
+  }
+
+  void _showItemInfoDialog(Item item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(item.name),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                color: _getTypeColor(item.type),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              child: Text(
+                _getTypeLabel(item.type),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Описание
+              if (item.description.isNotEmpty) ...[
+                const Text(
+                  'Описание:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: double.maxFinite,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(item.description),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Для оружия
+              if (item.type == ItemType.weapon) ...[
+                if (item.damage != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Урон:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.red[200]!),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          item.damage!,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (item.damageType != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Тип урона:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(_getDamageTypeLabel(item.damageType!)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+
+              // Для брони
+              if (item.type == ItemType.armor) ...[
+                if (item.armorClass != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Класс брони:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.blue[200]!),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          '${item.armorClass}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (item.armorType != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Тип брони:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      Text(_getArmorTypeLabel(item.armorType!)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
+
+              // Бонус
+              if (item.bonus != 0) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Бонус:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.green[200]!),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: Text(
+                        '${item.bonus > 0 ? '+' : ''}${item.bonus}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green[900],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
+          if (item.type == ItemType.weapon || item.type == ItemType.armor)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _equipUnequipItem(item);
+              },
+              child: Text(
+                _isItemEquipped(item) ? 'Снять' : 'Надеть',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   void _showEditItemDialog(int index) {
     final item = inventory.items[index];
     final nameController = TextEditingController(text: item.name);
@@ -343,7 +651,11 @@ class _InventoryScreenState extends State<InventoryScreen> {
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
+                final oldName = inventory.items[index].name;
+                // Закрываем диалог
+                Navigator.pop(context);
+                // Обновляем предмет с автообновлением UI
+                this.setState(() {
                   inventory.items[index] = Item(
                     name: nameController.text,
                     type: selectedType,
@@ -365,7 +677,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         : null,
                   );
                 });
-                Navigator.pop(context);
+                // Показываем сообщение об успехе
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('$oldName обновлен'),
+                    duration: const Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
               },
               child: const Text('Сохранить'),
             ),
@@ -383,7 +702,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Заголовок и кнопка добавления
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -392,9 +710,16 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 ElevatedButton.icon(
-                  onPressed: _showAddItemDialog,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Добавить'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ItemDatabaseScreen(inventory: inventory),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.library_books),
+                  label: const Text('База'),
                 ),
               ],
             ),
@@ -420,76 +745,109 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: inventory.items.length,
                 itemBuilder: (context, index) {
-                  final item = inventory.items[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      title: Text(
-                        item.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: _getTypeColor(item.type),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Text(
-                              _getItemTypeDisplay(item),
-                              style: const TextStyle(
-                                fontSize: 11,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                   // Сортируем так, чтобы надетые предметы были в верху
+                   final sortedItems = List<Item>.from(inventory.items);
+                   sortedItems.sort((a, b) {
+                     final aEquipped = _isItemEquipped(a) ? 0 : 1;
+                     final bEquipped = _isItemEquipped(b) ? 0 : 1;
+                     return aEquipped.compareTo(bEquipped);
+                   });
+                   
+                    final item = sortedItems[index];
+                    final actualIndex = inventory.items.indexOf(item);
+                    return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        color: _isItemEquipped(item) ? Colors.blue[50] : null,
+                        child: ListTile(
+                          onTap: () => _showItemInfoDialog(item),
+                          leading: _isItemEquipped(item)
+                              ? Tooltip(
+                                  message: 'Надевено',
+                                  child: Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green[700],
+                                  ),
+                                )
+                              : null,
+                          title: Text(
+                            item.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          if (item.bonus > 0) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.green[100],
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              child: Text(
-                                '+${item.bonus}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.green[900],
-                                  fontWeight: FontWeight.w500,
+                          subtitle: Row(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: _getTypeColor(item.type),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                child: Text(
+                                  _getItemTypeDisplay(item),
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      trailing: PopupMenuButton(
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            onTap: () => _showEditItemDialog(index),
-                            child: const Text('Редактировать'),
-                          ),
-                          PopupMenuItem(
-                            onTap: () {
-                              setState(() {
-                                inventory.removeItemAt(index);
-                              });
-                            },
-                            child: const Text('Удалить'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                             if (item.bonus > 0) ...[
+                               const SizedBox(width: 8),
+                               Container(
+                                 decoration: BoxDecoration(
+                                   color: Colors.green[100],
+                                   borderRadius: BorderRadius.circular(4),
+                                 ),
+                                 padding: const EdgeInsets.symmetric(
+                                   horizontal: 8,
+                                   vertical: 4,
+                                 ),
+                                 child: Text(
+                                   '+${item.bonus}',
+                                   style: TextStyle(
+                                     fontSize: 11,
+                                     color: Colors.green[900],
+                                     fontWeight: FontWeight.w500,
+                                   ),
+                                 ),
+                               ),
+                             ],
+                           ],
+                         ),
+                         trailing: PopupMenuButton(
+                           itemBuilder: (context) => [
+                             if (item.type == ItemType.weapon || item.type == ItemType.armor)
+                               PopupMenuItem(
+                                 onTap: () => _equipUnequipItem(item),
+                                 child: Text(_isItemEquipped(item) ? 'Снять' : 'Надеть'),
+                               ),
+                             PopupMenuItem(
+                               onTap: () => _showEditItemDialog(actualIndex),
+                               child: const Text('Редактировать'),
+                             ),
+                              PopupMenuItem(
+                                onTap: () {
+                                  final itemName = inventory.items[actualIndex].name;
+                                  setState(() {
+                                    inventory.removeItemAt(actualIndex);
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('$itemName удален из инвентаря'),
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                                child: const Text('Удалить'),
+                              ),
+                           ],
+                         ),
+                       ),
+                     );
+                 },
               ),
           ],
         ),

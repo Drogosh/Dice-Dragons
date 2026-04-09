@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'item.dart';
+
 enum Skill {
   acrobatics,          // Ловкость - Акробатика
   animalHandling,      // Мудрость - Обращение с животными
@@ -32,11 +35,17 @@ class SkillModifier {
 }
 
 class Character {
+  String? id;  // ID в Firestore
   String name;
   int level;
   int hp;
   int ac; // Armor Class (Класс брони)
   int proficiencyBonus = 2; // Бонус мастерства (зависит от уровня)
+
+  String? raceId;    // ID выбранной расы
+  String? className; // Класс персонажа
+  String? raceName;  // Имя расы
+  String? classNameDisplay; // Имя класса для отображения
 
   // Шесть основных характеристик D&D
   int strength;      // Сила
@@ -49,7 +58,13 @@ class Character {
   // Навыки
   late Map<Skill, SkillModifier> skills;
 
+  // Надетые предметы
+  Item? equippedArmor;        // Броня
+  Item? equippedShield;       // Щит
+  List<Item?> equippedWeapons = [null, null, null]; // 3 оружия (слоты 0, 1, 2)
+
   Character({
+    this.id,
     required this.name,
     required this.level,
     required this.hp,
@@ -60,6 +75,10 @@ class Character {
     this.intelligence = 10,
     this.wisdom = 10,
     this.charisma = 10,
+    this.raceId,
+    this.className,
+    this.raceName,
+    this.classNameDisplay,
   }) {
     _initializeSkills();
     _updateProficiencyBonus();
@@ -135,13 +154,119 @@ class Character {
     skills[skill]!.isProficient = isProficient;
   }
 
-  /// Получить пассивную внимательность (Passive Perception)
-  int getPassivePerception() {
-    final wisdomMod = getWisdomModifier();
-    final perceptionSkill = skills[Skill.perception];
-    final profBonus = perceptionSkill!.isProficient ? proficiencyBonus : 0;
-    return 10 + wisdomMod + profBonus;
-  }
+   /// Получить пассивную внимательность (Passive Perception)
+   int getPassivePerception() {
+     final wisdomMod = getWisdomModifier();
+     final perceptionSkill = skills[Skill.perception];
+     final profBonus = perceptionSkill!.isProficient ? proficiencyBonus : 0;
+     return 10 + wisdomMod + profBonus;
+   }
+
+   /// Надеть броню
+   void equipArmor(Item? armor) {
+     if (armor == null || armor.type == ItemType.armor) {
+       equippedArmor = armor;
+     }
+   }
+
+   /// Надеть щит
+   void equipShield(Item? shield) {
+     if (shield == null || (shield.type == ItemType.armor && shield.armorType == ArmorType.shield)) {
+       equippedShield = shield;
+     }
+   }
+
+   /// Надеть оружие в слот (0, 1, или 2)
+   void equipWeapon(int slot, Item? weapon) {
+     if (slot >= 0 && slot < 3) {
+       if (weapon == null || weapon.type == ItemType.weapon) {
+         equippedWeapons[slot] = weapon;
+       }
+     }
+   }
+
+   /// Снять оружие из слота
+   void unequipWeapon(int slot) {
+     if (slot >= 0 && slot < 3) {
+       equippedWeapons[slot] = null;
+     }
+   }
+
+     /// Получить текущий AC (на основе надетых предметов)
+     int getCalculatedAC() {
+       int baseAC = 10;
+       final dexMod = getDexterityModifier();
+
+       // Если броня надета
+       if (equippedArmor != null && equippedArmor!.armorClass != null) {
+         final armorAC = equippedArmor!.armorClass!;
+
+         // В зависимости от типа брони
+         if (equippedArmor!.armorType == ArmorType.light) {
+           // Легкая броня: её КБ + мод ловкости
+           baseAC = armorAC + dexMod;
+         } else if (equippedArmor!.armorType == ArmorType.medium) {
+           // Средняя броня: её КБ + мод ловкости (макс +2)
+           baseAC = armorAC + (dexMod > 2 ? 2 : dexMod);
+         } else if (equippedArmor!.armorType == ArmorType.heavy) {
+           // Тяжелая броня: просто её КБ
+           baseAC = armorAC;
+         }
+       } else {
+         // Без брони: 10 + мод ловкости
+         baseAC = 10 + dexMod;
+       }
+
+        // Добавляем AC щита если надет
+        // Щит обычно имеет AC 10, то есть дает +2 бонус
+        // Но берем реальное значение: AC щита минус 10 (базовый AC без щита)
+        if (equippedShield != null && equippedShield!.armorClass != null) {
+          baseAC += equippedShield!.armorClass!;
+        }
+
+       return baseAC;
+     }
+
+      /// Получить расшифровку расчета AC (для отображения)
+      String getACCalculationDetails() {
+        final dexMod = getDexterityModifier();
+        final dexModStr = '${dexMod > 0 ? '+' : ''}$dexMod';
+        final ac = getCalculatedAC();
+
+        String calculation = '';
+
+        if (equippedArmor != null && equippedArmor!.armorClass != null) {
+          final armorAC = equippedArmor!.armorClass!;
+
+          if (equippedArmor!.armorType == ArmorType.light) {
+            calculation = 'КБ $armorAC $dexModStr(ловк)';
+          } else if (equippedArmor!.armorType == ArmorType.medium) {
+            final effectiveDex = dexMod > 2 ? 2 : dexMod;
+            final effectiveDexStr = '${effectiveDex > 0 ? '+' : ''}$effectiveDex';
+            calculation = 'КБ $armorAC $effectiveDexStr(ловк м.+2)';
+          } else if (equippedArmor!.armorType == ArmorType.heavy) {
+            calculation = 'КБ $armorAC';
+          }
+        } else {
+          calculation = 'КБ 10 $dexModStr(ловк)';
+        }
+
+         if (equippedShield != null) {
+           final shieldBonus = equippedShield!.armorClass != null
+               ? equippedShield!.armorClass!
+               : 2;
+           calculation += ' +$shieldBonus(щит)';
+         }
+
+        calculation += ' = $ac';
+
+        return calculation;
+      }
+
+   /// Получить список надетых предметов
+   List<Item?> getEquippedItems() {
+     return [equippedArmor, equippedShield, ...equippedWeapons];
+   }
 
   // Метод для получения модификатора характеристики (полезен для D&D)
   int getAbilityModifier(int abilityScore) {
@@ -159,6 +284,7 @@ class Character {
   // Для сериализации/десериализации
   Map<String, dynamic> toMap() {
     return {
+      'id': id ?? name,
       'name': name,
       'level': level,
       'hp': hp,
@@ -169,11 +295,16 @@ class Character {
       'intelligence': intelligence,
       'wisdom': wisdom,
       'charisma': charisma,
+      'raceId': raceId,
+      'className': className,
+      'raceName': raceName,
+      'classNameDisplay': classNameDisplay,
     };
   }
 
   factory Character.fromMap(Map<String, dynamic> map) {
     return Character(
+      id: map['id'] as String?,
       name: map['name'] as String,
       level: map['level'] as int,
       hp: map['hp'] as int,
@@ -184,7 +315,56 @@ class Character {
       intelligence: map['intelligence'] as int? ?? 10,
       wisdom: map['wisdom'] as int? ?? 10,
       charisma: map['charisma'] as int? ?? 10,
+      raceId: map['raceId'] as String?,
+      className: map['className'] as String?,
+      raceName: map['raceName'] as String?,
+      classNameDisplay: map['classNameDisplay'] as String?,
     );
   }
-}
 
+  /// Копирование с изменениями
+  Character copyWith({
+    String? id,
+    String? name,
+    int? level,
+    int? hp,
+    int? ac,
+    int? strength,
+    int? dexterity,
+    int? constitution,
+    int? intelligence,
+    int? wisdom,
+    int? charisma,
+    String? raceId,
+    String? className,
+    String? raceName,
+    String? classNameDisplay,
+  }) {
+    return Character(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      level: level ?? this.level,
+      hp: hp ?? this.hp,
+      ac: ac ?? this.ac,
+      strength: strength ?? this.strength,
+      dexterity: dexterity ?? this.dexterity,
+      constitution: constitution ?? this.constitution,
+      intelligence: intelligence ?? this.intelligence,
+      wisdom: wisdom ?? this.wisdom,
+      charisma: charisma ?? this.charisma,
+      raceId: raceId ?? this.raceId,
+      className: className ?? this.className,
+      raceName: raceName ?? this.raceName,
+      classNameDisplay: classNameDisplay ?? this.classNameDisplay,
+    );
+  }
+
+  String toJsonString() {
+    return jsonEncode(toMap());
+  }
+
+  factory Character.fromJsonString(String jsonString) {
+    final map = jsonDecode(jsonString) as Map<String, dynamic>;
+    return Character.fromMap(map);
+  }
+}
