@@ -15,9 +15,16 @@ class FirestoreService {
 
   // ==================== ПЕРСОНАЖИ ====================
 
-  /// Сохранить персонажа в Firestore
+   /// Сохранить персонажа в Firestore
   Future<String> saveCharacter(String userId, Character character) async {
     try {
+      // Если персонаж уже имеет ID - обновляем его
+      if (character.id != null) {
+        await updateCharacter(userId, character.id!, character);
+        return character.id!;
+      }
+
+      // Иначе создаем новый документ
       final docRef = _firestore
           .collection('users')
           .doc(userId)
@@ -88,9 +95,15 @@ class FirestoreService {
     }
   }
 
-  /// Обновить персонажа
+   /// Обновить персонажа
   Future<void> updateCharacter(String userId, String charId, Character character) async {
     try {
+      // Сохраняем профессиональности навыков
+      Map<String, bool> skillProficiencies = {};
+      character.skills.forEach((skill, modifier) {
+        skillProficiencies[skill.toString()] = modifier.isProficient;
+      });
+
       await _firestore
           .collection('users')
           .doc(userId)
@@ -107,6 +120,7 @@ class FirestoreService {
         'intelligence': character.intelligence,
         'wisdom': character.wisdom,
         'charisma': character.charisma,
+        'skillProficiencies': skillProficiencies,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {

@@ -39,52 +39,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
       ),
       child: Column(
         children: [
-          // Заголовок с кнопкой редактирования
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const SizedBox(),
-                // Кнопка редактирования
-                Container(
-                  decoration: BoxDecoration(
-                    color: _isEditingSkills ? Colors.orange : Colors.grey[700],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      _isEditingSkills ? Icons.check : Icons.edit,
-                      color: Colors.white,
-                    ),
-                    onPressed: () async {
-                      if (_isEditingSkills) {
-                        // Сохраняем на Firebase
-                        try {
-                          final firestoreService = FirestoreService();
-                          final userId = FirebaseAuth.instance.currentUser!.uid;
-                          await firestoreService.saveCharacter(userId, character);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Навыки сохранены')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Ошибка: $e')),
-                            );
-                          }
-                        }
-                      }
-                      setState(() => _isEditingSkills = !_isEditingSkills);
-                    },
-                    tooltip: _isEditingSkills ? 'Сохранить' : 'Редактировать',
-                  ),
-                ),
-              ],
-            ),
-          ),
+
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -129,9 +84,49 @@ class _CharacterScreenState extends State<CharacterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Характеристики: ',
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Характеристики: ',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: _isEditingSkills ? Colors.orange : Colors.grey[700],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _isEditingSkills ? Icons.check : Icons.edit,
+                      color: Colors.white,
+                    ),
+                    onPressed: () async {
+                      if (_isEditingSkills) {
+                        // Сохраняем на Firebase
+                        try {
+                          final firestoreService = FirestoreService();
+                          final userId = FirebaseAuth.instance.currentUser!.uid;
+                          await firestoreService.saveCharacter(userId, character);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Навыки сохранены')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Ошибка: $e')),
+                            );
+                          }
+                        }
+                      }
+                      setState(() => _isEditingSkills = !_isEditingSkills);
+                    },
+                    tooltip: _isEditingSkills ? 'Сохранить' : 'Редактировать',
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             GridView.count(

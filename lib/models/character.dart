@@ -283,6 +283,12 @@ class Character {
 
   // Для сериализации/десериализации
   Map<String, dynamic> toMap() {
+    // Сохраняем профессиональности навыков
+    Map<String, bool> skillProficiencies = {};
+    skills.forEach((skill, modifier) {
+      skillProficiencies[skill.toString()] = modifier.isProficient;
+    });
+
     return {
       'id': id ?? name,
       'name': name,
@@ -299,11 +305,12 @@ class Character {
       'className': className,
       'raceName': raceName,
       'classNameDisplay': classNameDisplay,
+      'skillProficiencies': skillProficiencies,
     };
   }
 
   factory Character.fromMap(Map<String, dynamic> map) {
-    return Character(
+    final character = Character(
       id: map['id'] as String?,
       name: map['name'] as String,
       level: map['level'] as int,
@@ -320,6 +327,29 @@ class Character {
       raceName: map['raceName'] as String?,
       classNameDisplay: map['classNameDisplay'] as String?,
     );
+
+    // Восстанавливаем профессиональности навыков
+    if (map['skillProficiencies'] is Map) {
+      final profs = map['skillProficiencies'] as Map<String, dynamic>;
+      profs.forEach((skillStr, isProficient) {
+        // Преобразуем строку обратно в Skill enum
+        try {
+          final skillName = skillStr.replaceFirst('Skill.', '');
+          for (final skill in Skill.values) {
+            if (skill.toString() == 'Skill.$skillName') {
+              if (character.skills.containsKey(skill)) {
+                character.skills[skill]!.isProficient = isProficient as bool;
+              }
+              break;
+            }
+          }
+        } catch (e) {
+          // Игнорируем ошибки при преобразовании
+        }
+      });
+    }
+
+    return character;
   }
 
   /// Копирование с изменениями

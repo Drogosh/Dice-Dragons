@@ -97,14 +97,19 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     return total;
   }
 
-  /// Проверить, может ли быть установлено новое значение характеристики
+   /// Проверить, может ли быть установлено новое значение характеристики
   bool _canSetAbilityScore(int currentValue, int newValue, int raceBonus) {
     // Если режим PointBuy - проверяем ограничение 27 очков
     if (_usePointBuy) {
       return _canSetAbilityScorePointBuy(currentValue, newValue);
     }
 
-    // Режим 1: БЕЗ ОГРАНИЧЕНИЙ
+    // Режим без PointBuy: проверяем, что сумма (base + race) не превышает 20
+    int finalValue = newValue + raceBonus;
+    if (finalValue > 20) {
+      return false;
+    }
+
     return true;
   }
 
@@ -301,6 +306,17 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   }
 
   Widget _buildAttributeSlider(String label, int value, Function(int) onChanged) {
+    // Определяем бонус расы для этой характеристики
+    int raceBonus = 0;
+    if (_selectedRace != null) {
+      if (label.contains('STR')) raceBonus = _selectedRace!.strengthBonus;
+      else if (label.contains('DEX')) raceBonus = _selectedRace!.dexterityBonus;
+      else if (label.contains('CON')) raceBonus = _selectedRace!.constitutionBonus;
+      else if (label.contains('INT')) raceBonus = _selectedRace!.intelligenceBonus;
+      else if (label.contains('WIS')) raceBonus = _selectedRace!.wisdomBonus;
+      else if (label.contains('CHA')) raceBonus = _selectedRace!.charismaBonus;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
@@ -328,35 +344,21 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                   ),
                   const SizedBox(width: 8),
                   // Показываем бонус расы если она выбрана
-                  if (_selectedRace != null)
-                    Builder(
-                      builder: (context) {
-                        int raceBonus = 0;
-                        if (label.contains('STR')) raceBonus = _selectedRace!.strengthBonus;
-                        else if (label.contains('DEX')) raceBonus = _selectedRace!.dexterityBonus;
-                        else if (label.contains('CON')) raceBonus = _selectedRace!.constitutionBonus;
-                        else if (label.contains('INT')) raceBonus = _selectedRace!.intelligenceBonus;
-                        else if (label.contains('WIS')) raceBonus = _selectedRace!.wisdomBonus;
-                        else if (label.contains('CHA')) raceBonus = _selectedRace!.charismaBonus;
-
-                        if (raceBonus == 0) return const SizedBox.shrink();
-
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green[800],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '+$raceBonus',
-                            style: const TextStyle(
-                              color: Colors.greenAccent,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                      },
+                  if (raceBonus != 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[800],
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '+$raceBonus',
+                        style: const TextStyle(
+                          color: Colors.greenAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -371,21 +373,15 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
             inactiveColor: Colors.grey[600],
             onChanged: (val) {
               int newValue = val.toInt();
-              // Определяем бонус расы для этой характеристики
-              int raceBonus = 0;
-              if (label.contains('STR')) raceBonus = _selectedRace?.strengthBonus ?? 0;
-              else if (label.contains('DEX')) raceBonus = _selectedRace?.dexterityBonus ?? 0;
-              else if (label.contains('CON')) raceBonus = _selectedRace?.constitutionBonus ?? 0;
-              else if (label.contains('INT')) raceBonus = _selectedRace?.intelligenceBonus ?? 0;
-              else if (label.contains('WIS')) raceBonus = _selectedRace?.wisdomBonus ?? 0;
-              else if (label.contains('CHA')) raceBonus = _selectedRace?.charismaBonus ?? 0;
-
-              // Проверяем сумму модификаторов
               if (_canSetAbilityScore(value, newValue, raceBonus)) {
                 onChanged(newValue);
                 setState(() => _errorMessage = null);
               } else {
-                setState(() => _errorMessage = 'Максимальная сумма модификаторов: 27');
+                if (_usePointBuy) {
+                  setState(() => _errorMessage = 'Недостаточно очков PointBuy (макс 27)');
+                } else {
+                  setState(() => _errorMessage = 'Максимум 20 очков характеристики (включая бонус расы)');
+                }
               }
             },
           ),
