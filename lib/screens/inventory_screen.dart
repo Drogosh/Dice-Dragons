@@ -533,12 +533,19 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/stats_widget/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -563,61 +570,80 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   ),
                 ],
               ),
-            const SizedBox(height: 16),
-
-            // Список предметов
-            if (inventory.items.isEmpty)
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32.0),
-                  child: Text(
-                    'Инвентарь пуст',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
+              const SizedBox(height: 16),
+              // Список предметов
+              if (inventory.items.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Text(
+                      'Инвентарь пуст',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
+                      ),
                     ),
                   ),
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: inventory.items.length,
-                itemBuilder: (context, index) {
-                   // Сортируем так, чтобы надетые предметы были в верху
-                   final sortedItems = List<Item>.from(inventory.items);
-                   sortedItems.sort((a, b) {
-                     final aEquipped = _isItemEquipped(a) ? 0 : 1;
-                     final bEquipped = _isItemEquipped(b) ? 0 : 1;
-                     return aEquipped.compareTo(bEquipped);
-                   });
-                   
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: inventory.items.length,
+                  itemBuilder: (context, index) {
+                    // Сортируем так, чтобы надетые предметы были в верху
+                    final sortedItems = List<Item>.from(inventory.items);
+                    sortedItems.sort((a, b) {
+                      final aEquipped = _isItemEquipped(a) ? 0 : 1;
+                      final bEquipped = _isItemEquipped(b) ? 0 : 1;
+                      return aEquipped.compareTo(bEquipped);
+                    });
+
                     final item = sortedItems[index];
                     final actualIndex = inventory.items.indexOf(item);
                     return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        color: _isItemEquipped(item) ? Colors.blue[50] : null,
-                        child: ListTile(
-                          onTap: () => _showItemInfoDialog(item),
-                          leading: _isItemEquipped(item)
-                              ? Tooltip(
-                                  message: 'Надевено',
-                                  child: Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green[700],
-                                  ),
-                                )
-                              : null,
-                          title: Text(
-                            item.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Row(
-                            children: [
+                      margin: const EdgeInsets.only(bottom: 8),
+                      color: _isItemEquipped(item) ? Colors.blue[50] : null,
+                      child: ListTile(
+                        onTap: () => _showItemInfoDialog(item),
+                        leading: _isItemEquipped(item)
+                            ? Tooltip(
+                                message: 'Надевено',
+                                child: Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green[700],
+                                ),
+                              )
+                            : null,
+                        title: Text(
+                          item.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Row(
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: _getTypeColor(item.type),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              child: Text(
+                                _getItemTypeDisplay(item),
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            if (item.bonus > 0) ...[
+                              const SizedBox(width: 8),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: _getTypeColor(item.type),
+                                  color: Colors.green[100],
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 padding: const EdgeInsets.symmetric(
@@ -625,74 +651,55 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                   vertical: 4,
                                 ),
                                 child: Text(
-                                  _getItemTypeDisplay(item),
-                                  style: const TextStyle(
+                                  '+${item.bonus}',
+                                  style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.white,
+                                    color: Colors.green[900],
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
-                             if (item.bonus > 0) ...[
-                               const SizedBox(width: 8),
-                               Container(
-                                 decoration: BoxDecoration(
-                                   color: Colors.green[100],
-                                   borderRadius: BorderRadius.circular(4),
-                                 ),
-                                 padding: const EdgeInsets.symmetric(
-                                   horizontal: 8,
-                                   vertical: 4,
-                                 ),
-                                 child: Text(
-                                   '+${item.bonus}',
-                                   style: TextStyle(
-                                     fontSize: 11,
-                                     color: Colors.green[900],
-                                     fontWeight: FontWeight.w500,
-                                   ),
-                                 ),
-                               ),
-                             ],
-                           ],
-                         ),
-                         trailing: PopupMenuButton(
-                           itemBuilder: (context) => [
-                             if (item.type == ItemType.weapon || item.type == ItemType.armor)
-                               PopupMenuItem(
-                                 onTap: () => _equipUnequipItem(item),
-                                 child: Text(_isItemEquipped(item) ? 'Снять' : 'Надеть'),
-                               ),
-                             PopupMenuItem(
-                               onTap: () => _showEditItemDialog(actualIndex),
-                               child: const Text('Редактировать'),
-                             ),
-                                PopupMenuItem(
-                                  onTap: () {
-                                    final itemName = inventory.items[actualIndex].name;
-                                    setState(() {
-                                      inventory.removeItemAt(actualIndex);
-                                    });
-                                    print('📞 Вызываю callback сохранения после удаления');
-                                    widget.onItemChanged?.call();
-                                    print('✅ Callback вызван');
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('$itemName удален из инвентаря'),
-                                        duration: const Duration(seconds: 2),
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  },
-                                 child: const Text('Удалить'),
-                               ),
-                           ],
-                         ),
-                       ),
-                     );
-                 },
-              ),
-          ],
+                            ],
+                          ],
+                        ),
+                        trailing: PopupMenuButton(
+                          itemBuilder: (context) => [
+                            if (item.type == ItemType.weapon || item.type == ItemType.armor)
+                              PopupMenuItem(
+                                onTap: () => _equipUnequipItem(item),
+                                child: Text(_isItemEquipped(item) ? 'Снять' : 'Надеть'),
+                              ),
+                            PopupMenuItem(
+                              onTap: () => _showEditItemDialog(actualIndex),
+                              child: const Text('Редактировать'),
+                            ),
+                            PopupMenuItem(
+                              onTap: () {
+                                final itemName = inventory.items[actualIndex].name;
+                                setState(() {
+                                  inventory.removeItemAt(actualIndex);
+                                });
+                                print('📞 Вызываю callback сохранения после удаления');
+                                widget.onItemChanged?.call();
+                                print('✅ Callback вызван');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('$itemName удален из инвентаря'),
+                                    duration: const Duration(seconds: 2),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              },
+                              child: const Text('Удалить'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );

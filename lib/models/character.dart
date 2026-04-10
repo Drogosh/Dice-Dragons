@@ -95,7 +95,7 @@ class Character {
   void _initializeSkills() {
     skills = {
       Skill.acrobatics: SkillModifier(skill: Skill.acrobatics, name: 'Акробатика'),
-      Skill.animalHandling: SkillModifier(skill: Skill.animalHandling, name: 'Обращение с животными'),
+      Skill.animalHandling: SkillModifier(skill: Skill.animalHandling, name: 'Обращ. с животными'),
       Skill.arcana: SkillModifier(skill: Skill.arcana, name: 'Магия'),
       Skill.athletics: SkillModifier(skill: Skill.athletics, name: 'Атлетика'),
       Skill.deception: SkillModifier(skill: Skill.deception, name: 'Обман'),

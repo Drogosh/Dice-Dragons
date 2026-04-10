@@ -38,90 +38,98 @@ class _InfoScreenState extends State<InfoScreen> {
     final displayHP = widget.character.hp;
     final calculatedAC = widget.character.getCalculatedAC();
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Заголовок с кнопкой смены персонажа
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Осн. информация:',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.swap_horiz),
-                  tooltip: 'Сменить персонажа',
-                  onPressed: () {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(
-                        builder: (context) => const CharacterSelectionScreen(),
-                      ),
-                      (route) => false,
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildInfoRow('Имя:', widget.character.name),
-                    _buildInfoRow('Уровень:', '${widget.character.level}'),
-                    _buildInfoRow('Опыт:', '${widget.character.level * 1000}'),
-                    const Divider(height: 24),
-                    _buildInfoRow('ХП:', '${displayHP}'),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Текущий КБ:', style: TextStyle(fontWeight: FontWeight.w500)),
-                        GestureDetector(
-                          onTap: () => _showACCalculation(),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.blue[200]!),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            child: Row(
-                              children: [
-                                Text(
-                                  '$calculatedAC',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[900],
-                                    fontSize: 16,
+    return Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/stats_widget/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Заголовок с кнопкой смены персонажа
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Осн. информация:',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.swap_horiz),
+                    tooltip: 'Сменить персонажа',
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const CharacterSelectionScreen(),
+                        ),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildInfoRow('Имя:', widget.character.name),
+                      _buildInfoRow('Уровень:', '${widget.character.level}'),
+                      _buildInfoRow('Опыт:', '${widget.character.level * 1000}'),
+                      const Divider(height: 24),
+                      _buildInfoRow('ХП:', '${displayHP}'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Текущий КБ:', style: TextStyle(fontWeight: FontWeight.w500)),
+                          GestureDetector(
+                            onTap: () => _showACCalculation(),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    '$calculatedAC',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.blue[900],
+                                      fontSize: 16,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 16,
-                                  color: Colors.blue[700],
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.info_outline,
+                                    size: 16,
+                                    color: Colors.blue[700],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    _buildEquippedItemsInfo(),
-                    const Divider(height: 24),
-                    _buildInfoRow('Бонус мастерства:', '+${widget.character.proficiencyBonus}'),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      _buildEquippedItemsInfo(),
+                      const Divider(height: 24),
+                      _buildInfoRow('Бонус мастерства:', '+${widget.character.proficiencyBonus}'),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

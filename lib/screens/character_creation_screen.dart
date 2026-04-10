@@ -454,7 +454,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
   String _getSkillName(Skill skill) {
     const skillNames = {
       Skill.acrobatics: 'Акробатика',
-      Skill.animalHandling: 'Обращение с животными',
+      Skill.animalHandling: 'Обращ. с животными',
       Skill.arcana: 'Магия',
       Skill.athletics: 'Атлетика',
       Skill.deception: 'Обман',

@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
-/// Виджет для отображения характеристики Силы (STR)
-/// Отображает: характеристику, модификатор и спасбросок
-class StrengthCard extends StatelessWidget {
-  final int strength;        // 16
-  final int modifier;        // +3
-  final int savingThrow;     // +5
+/// Виджет для отображения характеристики Ловкости (DEX)
+class DexterityCard extends StatelessWidget {
+  final int dexterity;
+  final int modifier;
+  final int savingThrow;
 
-  const StrengthCard({
+  const DexterityCard({
     super.key,
-    required this.strength,
+    required this.dexterity,
     required this.modifier,
     required this.savingThrow,
   });
@@ -21,7 +20,6 @@ class StrengthCard extends StatelessWidget {
       height: 126,
       child: Stack(
         children: [
-          // Фоновое изображение
           Positioned(
             left: 0,
             top: 0,
@@ -30,19 +28,17 @@ class StrengthCard extends StatelessWidget {
               height: 126,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/stats_widget/strength.png'),
+                  image: AssetImage('assets/stats_widget/agility.png'),
                   fit: BoxFit.fill,
                 ),
               ),
             ),
           ),
-
-          // Основная характеристика (верхнее значение)
           Positioned(
             left: 21,
-            top: 18,
+            top: 13,
             child: Text(
-              '$strength',
+              '$dexterity',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: const Color(0xFF452414),
@@ -52,8 +48,6 @@ class StrengthCard extends StatelessWidget {
               ),
             ),
           ),
-
-          // Модификатор (большое число в центре)
           Positioned(
             left: 15,
             top: 29,
@@ -67,11 +61,9 @@ class StrengthCard extends StatelessWidget {
               ),
             ),
           ),
-
-          // Спасбросок (нижнее значение)
           Positioned(
             left: 20,
-            top: 93,
+            top: 90,
             child: Text(
               savingThrow >= 0 ? '+$savingThrow' : '$savingThrow',
               textAlign: TextAlign.center,
@@ -88,5 +80,4 @@ class StrengthCard extends StatelessWidget {
     );
   }
 }
-
 
