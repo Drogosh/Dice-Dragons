@@ -178,6 +178,18 @@ class RulesEngine {
     return 10 + perceptionModifier;
   }
 
+  /// Получить описание кубика для класса
+  /// Например: "d8" для паладина, "d6" для чародея
+  static String getHitDiceString(CharacterClass characterClass) {
+    return 'd${characterClass.hitDice}';
+  }
+
+  /// Расчёт увеличения HP при повышении уровня
+  /// HP += результат кубика + модификатор Телосложения
+  static int calculateHPGain(int diceResult, int conModifier) {
+    return diceResult + conModifier;
+  }
+
   /// Проверяет, находится ли значение характеристики в допустимых пределах (3-20)
   static bool isValidAbilityScore(int score) {
     return score >= 3 && score <= 20;
