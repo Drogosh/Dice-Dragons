@@ -16,7 +16,7 @@ class RulesEngine {
 
     // Если есть надетая броня, она определяет базовый AC
     if (character.equippedArmor != null) {
-      ac = character.equippedArmor!.acBonus ?? 10;
+      ac = character.equippedArmor!.armorClass ?? 10;
     }
 
     // Добавляем модификатор Ловкости (зависит от типа брони)
@@ -189,4 +189,5 @@ class RulesEngine {
     return level >= 1 && level <= 20;
   }
 }
+
 
