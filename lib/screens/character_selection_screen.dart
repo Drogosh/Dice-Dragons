@@ -5,6 +5,7 @@ import '../models/inventory.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/auth_service.dart';
+import '../services/rules_engine.dart';
 import 'main_navigation_screen.dart';
 import 'character_creation_screen.dart';
 
@@ -223,27 +224,29 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
                           itemCount: characters.length,
-                        itemBuilder: (context, index) {
-                             final character = characters[index];
-                             // Пересчитываем HP для отображения в списке
-                             final displayHP = character.recalculateHP();
-                             return Padding(
-                               padding: const EdgeInsets.only(bottom: 12),
-                               child: Card(
-                                 color: Colors.grey[800],
-                                 child: ListTile(
-                                   leading: const Icon(Icons.person, color: Colors.blue),
-                                   title: Text(
-                                     character.name,
-                                     style: const TextStyle(
-                                       color: Colors.white,
-                                       fontWeight: FontWeight.bold,
-                                     ),
-                                   ),
-                                   subtitle: Text(
-                                     'Уровень ${character.level} • HP: $displayHP • AC: ${character.ac}',
-                                     style: TextStyle(color: Colors.grey[400]),
-                                   ),
+                          itemBuilder: (context, index) {
+                              final character = characters[index];
+                              // Пересчитываем HP для отображения в списке
+                              final displayHP = character.recalculateHP();
+                              // Рассчитываем реальный AC с учётом надетой брони
+                              final displayAC = RulesEngine.calculateAC(character);
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Card(
+                                  color: Colors.grey[800],
+                                  child: ListTile(
+                                    leading: const Icon(Icons.person, color: Colors.blue),
+                                    title: Text(
+                                      character.name,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      'Уровень ${character.level} • HP: $displayHP • AC: $displayAC',
+                                      style: TextStyle(color: Colors.grey[400]),
+                                    ),
                                    trailing: PopupMenuButton(
                                      itemBuilder: (context) => [
                                        PopupMenuItem(
