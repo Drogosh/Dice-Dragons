@@ -22,11 +22,10 @@ class SkillItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgImage = isFiltered
+    // Фон зависит ТОЛЬКО от isProficient, фильтрация не должна менять фон
+    final bgImage = isProficient
         ? 'assets/stats_widget/skill_on.png'
-        : (isProficient
-            ? 'assets/stats_widget/skill_on.png'
-            : 'assets/stats_widget/skill_off.png');
+        : 'assets/stats_widget/skill_off.png';
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 6),
