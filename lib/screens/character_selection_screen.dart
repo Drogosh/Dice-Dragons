@@ -42,7 +42,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
        print('   ⚠️  HP изменено с ${character.hp} на $recalculatedHP');
        character.hp = recalculatedHP;
      }
-
+     
      // Обновляем currentCharacterId в User профиле
      await _authService.updateUserProfile(
        uid: _userId,

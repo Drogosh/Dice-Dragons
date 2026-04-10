@@ -62,13 +62,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
        print('   Щит сейчас: ${currentCharacter.equippedShield?.name ?? "нет"}');
        print('   Оружие: ${currentCharacter.equippedWeapons.map((w) => w?.name ?? "нет").toList()}');
        print('   В инвентаре предметов: ${currentInventory.items.length}');
-
+       
        // Восстанавливаем броню
        if (currentCharacter.equippedArmor != null) {
          print('   🔍 Ищу броню: ${currentCharacter.equippedArmor!.name}');
          bool found = false;
          for (final item in currentInventory.items) {
-           if (item.type == ItemType.armor &&
+           if (item.type == ItemType.armor && 
                item.armorType != ArmorType.shield &&
                item.name == currentCharacter.equippedArmor!.name) {
              currentCharacter.equipArmor(item);
@@ -81,13 +81,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
            print('   ❌ Броня не найдена в инвентаре!');
          }
        }
-
+       
        // Восстанавливаем щит
        if (currentCharacter.equippedShield != null) {
          print('   🔍 Ищу щит: ${currentCharacter.equippedShield!.name}');
          bool found = false;
          for (final item in currentInventory.items) {
-           if (item.type == ItemType.armor &&
+           if (item.type == ItemType.armor && 
                item.armorType == ArmorType.shield &&
                item.name == currentCharacter.equippedShield!.name) {
              currentCharacter.equipShield(item);
@@ -100,14 +100,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
            print('   ❌ Щит не найден в инвентаре!');
          }
        }
-
+       
        // Восстанавливаем оружие
        for (int i = 0; i < currentCharacter.equippedWeapons.length; i++) {
          if (currentCharacter.equippedWeapons[i] != null) {
            print('   🔍 Ищу оружие ${i+1}: ${currentCharacter.equippedWeapons[i]!.name}');
            bool found = false;
            for (final item in currentInventory.items) {
-             if (item.type == ItemType.weapon &&
+             if (item.type == ItemType.weapon && 
                  item.name == currentCharacter.equippedWeapons[i]!.name) {
                currentCharacter.equipWeapon(i, item);
                print('   ✅ Восстановлено оружие ${i+1}: ${item.name}');

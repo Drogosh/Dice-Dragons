@@ -55,7 +55,7 @@ class Character {
   int wisdom;        // Мудрость
   int charisma;      // Харизма
 
-  // Спасброски (мастерство для спасбросков)
+  // Спасброски (мастерство)
   bool strengthSaveProficiency = false;
   bool dexteritySaveProficiency = false;
   bool constitutionSaveProficiency = false;
@@ -279,7 +279,7 @@ class Character {
    /// Пересчитать HP на основе текущего телосложения и класса
    int recalculateHP() {
      final conModifier = getConstitutionModifier();
-
+     
      // Получаем базовый Hit Dice из имени класса
      // Это временное решение, в идеале нужно хранить hitDice в Character
      int hitDice = 8; // По умолчанию 8
@@ -293,7 +293,7 @@ class Character {
        }
        // Остальные классы используют 8
      }
-
+     
      int newHP = hitDice + conModifier;
      print('🔄 Пересчет HP для персонажа "$name"');
      print('   Класс: $classNameDisplay');
@@ -301,7 +301,7 @@ class Character {
      print('   Constitution: $constitution');
      print('   Con Modifier: $conModifier');
      print('   HP: $hitDice + $conModifier = $newHP');
-
+     
      return newHP;
    }
 
@@ -373,32 +373,32 @@ class Character {
       };
    }
 
-  factory Character.fromMap(Map<String, dynamic> map) {
-    final character = Character(
-      id: map['id'] as String?,
-      name: map['name'] as String,
-      level: map['level'] as int,
-      hp: map['hp'] as int,
-      ac: map['ac'] as int,
-      strength: map['strength'] as int? ?? 10,
-      dexterity: map['dexterity'] as int? ?? 10,
-      constitution: map['constitution'] as int? ?? 10,
-      intelligence: map['intelligence'] as int? ?? 10,
-      wisdom: map['wisdom'] as int? ?? 10,
-      charisma: map['charisma'] as int? ?? 10,
-      raceId: map['raceId'] as String?,
-      className: map['className'] as String?,
-      raceName: map['raceName'] as String?,
-      classNameDisplay: map['classNameDisplay'] as String?,
-    );
+   factory Character.fromMap(Map<String, dynamic> map) {
+     final character = Character(
+       id: map['id'] as String?,
+       name: map['name'] as String,
+       level: map['level'] as int,
+       hp: map['hp'] as int,
+       ac: map['ac'] as int,
+       strength: map['strength'] as int? ?? 10,
+       dexterity: map['dexterity'] as int? ?? 10,
+       constitution: map['constitution'] as int? ?? 10,
+       intelligence: map['intelligence'] as int? ?? 10,
+       wisdom: map['wisdom'] as int? ?? 10,
+       charisma: map['charisma'] as int? ?? 10,
+       raceId: map['raceId'] as String?,
+       className: map['className'] as String?,
+       raceName: map['raceName'] as String?,
+       classNameDisplay: map['classNameDisplay'] as String?,
+     );
 
-    // Загружаем спасброски
-    character.strengthSaveProficiency = map['strengthSaveProficiency'] as bool? ?? false;
-    character.dexteritySaveProficiency = map['dexteritySaveProficiency'] as bool? ?? false;
-    character.constitutionSaveProficiency = map['constitutionSaveProficiency'] as bool? ?? false;
-    character.intelligenceSaveProficiency = map['intelligenceSaveProficiency'] as bool? ?? false;
-    character.wisdomSaveProficiency = map['wisdomSaveProficiency'] as bool? ?? false;
-    character.charismaSaveProficiency = map['charismaSaveProficiency'] as bool? ?? false;
+     // Загружаем спасброски
+     character.strengthSaveProficiency = map['strengthSaveProficiency'] as bool? ?? false;
+     character.dexteritySaveProficiency = map['dexteritySaveProficiency'] as bool? ?? false;
+     character.constitutionSaveProficiency = map['constitutionSaveProficiency'] as bool? ?? false;
+     character.intelligenceSaveProficiency = map['intelligenceSaveProficiency'] as bool? ?? false;
+     character.wisdomSaveProficiency = map['wisdomSaveProficiency'] as bool? ?? false;
+     character.charismaSaveProficiency = map['charismaSaveProficiency'] as bool? ?? false;
 
      // Восстанавливаем профессиональности навыков
      if (map['skillProficiencies'] is Map) {
@@ -425,7 +425,7 @@ class Character {
      if (map['equippedItems'] is Map) {
        final equipped = map['equippedItems'] as Map<String, dynamic>;
        print('📦 ЗАГРУЖАЮ НАДЕТЫЕ ПРЕДМЕТЫ из Map');
-
+       
        // Загружаем броню
        if (equipped['armor'] is Map) {
          try {
