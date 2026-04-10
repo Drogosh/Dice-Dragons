@@ -22,6 +22,7 @@ class CharacterScreen extends StatefulWidget {
 class _CharacterScreenState extends State<CharacterScreen> {
   late Character character;
   Skill? selectedSkillFilter;
+  String? selectedAbility;
   bool _isEditingSkills = false;
 
   @override
@@ -57,7 +58,20 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Карточка Силы
-                    AbilitiesRow(character: character),
+                    AbilitiesRow(
+                      character: character,
+                      selectedAbility: selectedAbility,
+                      onAbilityTap: (ability) {
+                        setState(() {
+                          selectedAbility = ability;
+                          if (ability != null) {
+                            selectedSkillFilter = _getFirstSkillForAbility(ability);
+                          } else {
+                            selectedSkillFilter = null;
+                          }
+                        });
+                      },
+                    ),
                     const SizedBox(height: 24),
                     // Пассивная внимательность
                     _buildPassivePerceptionSection(context),
@@ -227,43 +241,13 @@ class _CharacterScreenState extends State<CharacterScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 🔹 Заголовок + сброс
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Навыки (${filteredSkills.length}/${character.skills.length})',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: const Color(0xFF3E2C1C),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              if (selectedSkillFilter != null)
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedSkillFilter = null;
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.amber[200],
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    child: const Text(
-                      'Сброс',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+          // 🔹 Заголовок
+          Text(
+            'Навыки (${filteredSkills.length}/${character.skills.length})',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: const Color(0xFF3E2C1C),
+              fontWeight: FontWeight.bold,
+            ),
           ),
 
           const SizedBox(height: 12),
@@ -283,6 +267,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
                   bonus: bonus,
                   isProficient: skill.isProficient,
                   isEditing: _isEditingSkills,
+                  isFiltered: _isAbilityFiltered(_getAbilityForSkill(skill.skill)),
                   onToggle: () {
                     setState(() {
                       character.setProficiency(
@@ -327,6 +312,18 @@ class _CharacterScreenState extends State<CharacterScreen> {
       case Skill.persuasion:
         return 'Харизма (CHA)';
     }
+  }
+
+  // Получает первый навык для характеристики
+  Skill _getFirstSkillForAbility(String abilityCode) {
+    final allSkills = character.skills.keys.toList();
+    return allSkills.firstWhere((skill) =>
+        _getAbilityForSkill(skill) == abilityCode);
+  }
+
+  // Проверяет, отфильтрована ли эта характеристика
+  bool _isAbilityFiltered(String ability) {
+    return selectedAbility == ability;
   }
 }
 

@@ -6,16 +6,22 @@ class StrengthCard extends StatelessWidget {
   final int strength;        // 16
   final int modifier;        // +3
   final int savingThrow;     // +5
+  final bool isSelected;     // выбрана ли характеристика
 
   const StrengthCard({
     super.key,
     required this.strength,
     required this.modifier,
     required this.savingThrow,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgImage = isSelected
+        ? 'assets/stats_widget/strength_on.png'
+        : 'assets/stats_widget/strength.png';
+
     return Container(
       width: 59.12,
       height: 126,
@@ -30,7 +36,7 @@ class StrengthCard extends StatelessWidget {
               height: 126,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/stats_widget/strength.png'),
+                  image: AssetImage(bgImage),
                   fit: BoxFit.fill,
                 ),
               ),
@@ -40,7 +46,7 @@ class StrengthCard extends StatelessWidget {
           // Основная характеристика (верхнее значение)
           Positioned(
             left: 21,
-            top: 18,
+            top: 13,
             child: Text(
               '$strength',
               textAlign: TextAlign.center,
@@ -71,7 +77,7 @@ class StrengthCard extends StatelessWidget {
           // Спасбросок (нижнее значение)
           Positioned(
             left: 20,
-            top: 93,
+            top: 90,
             child: Text(
               savingThrow >= 0 ? '+$savingThrow' : '$savingThrow',
               textAlign: TextAlign.center,

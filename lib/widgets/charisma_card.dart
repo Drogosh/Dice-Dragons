@@ -5,16 +5,22 @@ class CharismaCard extends StatelessWidget {
   final int charisma;
   final int modifier;
   final int savingThrow;
+  final bool isSelected;
 
   const CharismaCard({
     super.key,
     required this.charisma,
     required this.modifier,
     required this.savingThrow,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgImage = isSelected
+        ? 'assets/stats_widget/charisma_on.png'
+        : 'assets/stats_widget/charisma.png';
+
     return Container(
       width: 59.12,
       height: 126,
@@ -28,7 +34,7 @@ class CharismaCard extends StatelessWidget {
               height: 126,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/stats_widget/charisma.png'),
+                  image: AssetImage(bgImage),
                   fit: BoxFit.fill,
                 ),
               ),

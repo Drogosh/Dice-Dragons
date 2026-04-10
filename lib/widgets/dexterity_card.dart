@@ -5,16 +5,22 @@ class DexterityCard extends StatelessWidget {
   final int dexterity;
   final int modifier;
   final int savingThrow;
+  final bool isSelected;
 
   const DexterityCard({
     super.key,
     required this.dexterity,
     required this.modifier,
     required this.savingThrow,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgImage = isSelected
+        ? 'assets/stats_widget/agility_on.png'
+        : 'assets/stats_widget/agility.png';
+
     return Container(
       width: 59.12,
       height: 126,
@@ -28,7 +34,7 @@ class DexterityCard extends StatelessWidget {
               height: 126,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/stats_widget/agility.png'),
+                  image: AssetImage(bgImage),
                   fit: BoxFit.fill,
                 ),
               ),

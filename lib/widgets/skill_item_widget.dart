@@ -6,6 +6,7 @@ class SkillItemWidget extends StatelessWidget {
   final bool isProficient;
   final bool isEditing;
   final String? ability;
+  final bool isFiltered;
   final VoidCallback? onToggle;
 
   const SkillItemWidget({
@@ -15,19 +16,22 @@ class SkillItemWidget extends StatelessWidget {
     required this.isProficient,
     required this.isEditing,
     this.ability,
+    this.isFiltered = false,
     this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bgImage = isProficient
+    final bgImage = isFiltered
         ? 'assets/stats_widget/skill_on.png'
-        : 'assets/stats_widget/skill_off.png';
+        : (isProficient
+            ? 'assets/stats_widget/skill_on.png'
+            : 'assets/stats_widget/skill_off.png');
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 6), // 🔥 расстояние между строками
+      margin: const EdgeInsets.symmetric(vertical: 6),
       child: AspectRatio(
-        aspectRatio: 13, // 🔥 подгони под картинку
+        aspectRatio: 13,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
@@ -37,20 +41,17 @@ class SkillItemWidget extends StatelessWidget {
               onTap: isEditing ? onToggle : null,
               child: Stack(
                 children: [
-                  // 🔥 ФОН
                   Positioned.fill(
                     child: Image.asset(
                       bgImage,
                       fit: BoxFit.fill,
                     ),
                   ),
-
-                  // 📝 НАЗВАНИЕ НАВЫКА
                   Positioned(
                     left: w * 0.18,
-                    top: h * 0.1,
+                    top: h * 0.11,
                     child: SizedBox(
-                      width: w * 0.5,
+                      width: w * 0.7,
                       child: Text(
                         name,
                         maxLines: 1,
@@ -63,8 +64,6 @@ class SkillItemWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // 🔤 ХАРАКТЕРИСТИКА
                   if (ability != null)
                     Positioned(
                       right: w * 0.04,
@@ -79,8 +78,6 @@ class SkillItemWidget extends StatelessWidget {
                         ),
                       ),
                     ),
-
-                  // 🔢 БОНУС (в табличке)
                   Positioned(
                     right: w * 0.815,
                     top: h * 0.014,

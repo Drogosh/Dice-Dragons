@@ -5,16 +5,22 @@ class WisdomCard extends StatelessWidget {
   final int wisdom;
   final int modifier;
   final int savingThrow;
+  final bool isSelected;
 
   const WisdomCard({
     super.key,
     required this.wisdom,
     required this.modifier,
     required this.savingThrow,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bgImage = isSelected
+        ? 'assets/stats_widget/wisdom_on.png'
+        : 'assets/stats_widget/wisdom.png';
+
     return Container(
       width: 59.12,
       height: 126,
@@ -28,7 +34,7 @@ class WisdomCard extends StatelessWidget {
               height: 126,
               decoration: BoxDecoration(
                 image: DecorationImage(
-                  image: AssetImage('assets/stats_widget/wisdom.png'),
+                  image: AssetImage(bgImage),
                   fit: BoxFit.fill,
                 ),
               ),

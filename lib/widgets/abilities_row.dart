@@ -9,10 +9,14 @@ import 'charisma_card.dart';
 
 class AbilitiesRow extends StatelessWidget {
   final Character character;
+  final String? selectedAbility;
+  final Function(String?)? onAbilityTap;
 
   const AbilitiesRow({
     super.key,
     required this.character,
+    this.selectedAbility,
+    this.onAbilityTap,
   });
 
   @override
@@ -22,51 +26,75 @@ class AbilitiesRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _StatCardWrapper(
-          child: StrengthCard(
-            strength: character.strength,
-            modifier: character.getStrengthModifier(),
-            savingThrow: character.getStrengthSave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'STR' ? null : 'STR'),
+          child: _StatCardWrapper(
+            child: StrengthCard(
+              strength: character.strength,
+              modifier: character.getStrengthModifier(),
+              savingThrow: character.getStrengthSave(),
+              isSelected: selectedAbility == 'STR',
+            ),
           ),
         ),
         const SizedBox(width: 8.0),
-        _StatCardWrapper(
-          child: DexterityCard(
-            dexterity: character.dexterity,
-            modifier: character.getDexterityModifier(),
-            savingThrow: character.getDexteritySave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'DEX' ? null : 'DEX'),
+          child: _StatCardWrapper(
+            child: DexterityCard(
+              dexterity: character.dexterity,
+              modifier: character.getDexterityModifier(),
+              savingThrow: character.getDexteritySave(),
+              isSelected: selectedAbility == 'DEX',
+            ),
           ),
         ),
         const SizedBox(width: 8.0),
-        _StatCardWrapper(
-          child: ConstitutionCard(
-            constitution: character.constitution,
-            modifier: character.getConstitutionModifier(),
-            savingThrow: character.getConstitutionSave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'CON' ? null : 'CON'),
+          child: _StatCardWrapper(
+            child: ConstitutionCard(
+              constitution: character.constitution,
+              modifier: character.getConstitutionModifier(),
+              savingThrow: character.getConstitutionSave(),
+              isSelected: selectedAbility == 'CON',
+            ),
           ),
         ),
         const SizedBox(width: 8.0),
-        _StatCardWrapper(
-          child: IntelligenceCard(
-            intelligence: character.intelligence,
-            modifier: character.getIntelligenceModifier(),
-            savingThrow: character.getIntelligenceSave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'INT' ? null : 'INT'),
+          child: _StatCardWrapper(
+            child: IntelligenceCard(
+              intelligence: character.intelligence,
+              modifier: character.getIntelligenceModifier(),
+              savingThrow: character.getIntelligenceSave(),
+              isSelected: selectedAbility == 'INT',
+            ),
           ),
         ),
         const SizedBox(width: 8.0),
-        _StatCardWrapper(
-          child: WisdomCard(
-            wisdom: character.wisdom,
-            modifier: character.getWisdomModifier(),
-            savingThrow: character.getWisdomSave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'WIS' ? null : 'WIS'),
+          child: _StatCardWrapper(
+            child: WisdomCard(
+              wisdom: character.wisdom,
+              modifier: character.getWisdomModifier(),
+              savingThrow: character.getWisdomSave(),
+              isSelected: selectedAbility == 'WIS',
+            ),
           ),
         ),
         const SizedBox(width: 8.0),
-        _StatCardWrapper(
-          child: CharismaCard(
-            charisma: character.charisma,
-            modifier: character.getCharismaModifier(),
-            savingThrow: character.getCharismaSave(),
+        GestureDetector(
+          onTap: () => onAbilityTap?.call(selectedAbility == 'CHA' ? null : 'CHA'),
+          child: _StatCardWrapper(
+            child: CharismaCard(
+              charisma: character.charisma,
+              modifier: character.getCharismaModifier(),
+              savingThrow: character.getCharismaSave(),
+              isSelected: selectedAbility == 'CHA',
+            ),
           ),
         ),
       ],
