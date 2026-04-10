@@ -268,6 +268,35 @@ class Character {
      return [equippedArmor, equippedShield, ...equippedWeapons];
    }
 
+   /// Пересчитать HP на основе текущего телосложения и класса
+   int recalculateHP() {
+     final conModifier = getConstitutionModifier();
+
+     // Получаем базовый Hit Dice из имени класса
+     // Это временное решение, в идеале нужно хранить hitDice в Character
+     int hitDice = 8; // По умолчанию 8
+     if (classNameDisplay != null) {
+       if (classNameDisplay!.contains('Палладин') || classNameDisplay!.contains('Fighter')) {
+         hitDice = 10;
+       } else if (classNameDisplay!.contains('Маг') || classNameDisplay!.contains('Wizard')) {
+         hitDice = 6;
+       } else if (classNameDisplay!.contains('Варвар')) {
+         hitDice = 12;
+       }
+       // Остальные классы используют 8
+     }
+
+     int newHP = hitDice + conModifier;
+     print('🔄 Пересчет HP для персонажа "$name"');
+     print('   Класс: $classNameDisplay');
+     print('   Hit Dice: $hitDice');
+     print('   Constitution: $constitution');
+     print('   Con Modifier: $conModifier');
+     print('   HP: $hitDice + $conModifier = $newHP');
+
+     return newHP;
+   }
+
   // Метод для получения модификатора характеристики (полезен для D&D)
   int getAbilityModifier(int abilityScore) {
     return (abilityScore - 10) ~/ 2;
@@ -281,33 +310,46 @@ class Character {
   int getWisdomModifier() => getAbilityModifier(wisdom);
   int getCharismaModifier() => getAbilityModifier(charisma);
 
-  // Для сериализации/десериализации
-  Map<String, dynamic> toMap() {
-    // Сохраняем профессиональности навыков
-    Map<String, bool> skillProficiencies = {};
-    skills.forEach((skill, modifier) {
-      skillProficiencies[skill.toString()] = modifier.isProficient;
-    });
+   // Для сериализации/десериализации
+   Map<String, dynamic> toMap() {
+     // Сохраняем профессиональности навыков
+     Map<String, bool> skillProficiencies = {};
+     skills.forEach((skill, modifier) {
+       skillProficiencies[skill.toString()] = modifier.isProficient;
+     });
 
-    return {
-      'id': id ?? name,
-      'name': name,
-      'level': level,
-      'hp': hp,
-      'ac': ac,
-      'strength': strength,
-      'dexterity': dexterity,
-      'constitution': constitution,
-      'intelligence': intelligence,
-      'wisdom': wisdom,
-      'charisma': charisma,
-      'raceId': raceId,
-      'className': className,
-      'raceName': raceName,
-      'classNameDisplay': classNameDisplay,
-      'skillProficiencies': skillProficiencies,
-    };
-  }
+     // Сохраняем надетые предметы
+     Map<String, dynamic> equippedItems = {};
+     if (equippedArmor != null) {
+       equippedItems['armor'] = equippedArmor!.toMap();
+     }
+     if (equippedShield != null) {
+       equippedItems['shield'] = equippedShield!.toMap();
+     }
+     equippedItems['weapons'] = equippedWeapons
+         .map((weapon) => weapon != null ? weapon.toMap() : null)
+         .toList();
+
+     return {
+       'id': id ?? name,
+       'name': name,
+       'level': level,
+       'hp': hp,
+       'ac': ac,
+       'strength': strength,
+       'dexterity': dexterity,
+       'constitution': constitution,
+       'intelligence': intelligence,
+       'wisdom': wisdom,
+       'charisma': charisma,
+       'raceId': raceId,
+       'className': className,
+       'raceName': raceName,
+       'classNameDisplay': classNameDisplay,
+       'skillProficiencies': skillProficiencies,
+       'equippedItems': equippedItems,
+     };
+   }
 
   factory Character.fromMap(Map<String, dynamic> map) {
     final character = Character(
@@ -328,28 +370,66 @@ class Character {
       classNameDisplay: map['classNameDisplay'] as String?,
     );
 
-    // Восстанавливаем профессиональности навыков
-    if (map['skillProficiencies'] is Map) {
-      final profs = map['skillProficiencies'] as Map<String, dynamic>;
-      profs.forEach((skillStr, isProficient) {
-        // Преобразуем строку обратно в Skill enum
-        try {
-          final skillName = skillStr.replaceFirst('Skill.', '');
-          for (final skill in Skill.values) {
-            if (skill.toString() == 'Skill.$skillName') {
-              if (character.skills.containsKey(skill)) {
-                character.skills[skill]!.isProficient = isProficient as bool;
-              }
-              break;
-            }
-          }
-        } catch (e) {
-          // Игнорируем ошибки при преобразовании
-        }
-      });
-    }
+     // Восстанавливаем профессиональности навыков
+     if (map['skillProficiencies'] is Map) {
+       final profs = map['skillProficiencies'] as Map<String, dynamic>;
+       profs.forEach((skillStr, isProficient) {
+         // Преобразуем строку обратно в Skill enum
+         try {
+           final skillName = skillStr.replaceFirst('Skill.', '');
+           for (final skill in Skill.values) {
+             if (skill.toString() == 'Skill.$skillName') {
+               if (character.skills.containsKey(skill)) {
+                 character.skills[skill]!.isProficient = isProficient as bool;
+               }
+               break;
+             }
+           }
+         } catch (e) {
+           // Игнорируем ошибки при преобразовании
+         }
+       });
+     }
 
-    return character;
+     // Восстанавливаем надетые предметы
+     if (map['equippedItems'] is Map) {
+       final equipped = map['equippedItems'] as Map<String, dynamic>;
+       print('📦 ЗАГРУЖАЮ НАДЕТЫЕ ПРЕДМЕТЫ из Map');
+
+       // Загружаем броню
+       if (equipped['armor'] is Map) {
+         try {
+           character.equippedArmor = Item.fromMap(equipped['armor'] as Map<String, dynamic>);
+         } catch (e) {
+           print('Ошибка загрузки брони: $e');
+         }
+       }
+       
+       // Загружаем щит
+       if (equipped['shield'] is Map) {
+         try {
+           character.equippedShield = Item.fromMap(equipped['shield'] as Map<String, dynamic>);
+         } catch (e) {
+           print('Ошибка загрузки щита: $e');
+         }
+       }
+       
+       // Загружаем оружие
+       if (equipped['weapons'] is List) {
+         try {
+           final weaponsList = equipped['weapons'] as List<dynamic>;
+           for (int i = 0; i < weaponsList.length && i < 3; i++) {
+             if (weaponsList[i] is Map) {
+               character.equippedWeapons[i] = Item.fromMap(weaponsList[i] as Map<String, dynamic>);
+             }
+           }
+         } catch (e) {
+           print('Ошибка загрузки оружия: $e');
+         }
+       }
+     }
+
+     return character;
   }
 
   /// Копирование с изменениями

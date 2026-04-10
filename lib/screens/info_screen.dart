@@ -15,8 +15,27 @@ class InfoScreen extends StatefulWidget {
 }
 
 class _InfoScreenState extends State<InfoScreen> {
+  late int displayedHP;
+
+  @override
+  void initState() {
+    super.initState();
+    // Пересчитываем HP при открытии экрана
+    print('📖 InfoScreen.initState()');
+    final recalculatedHP = widget.character.recalculateHP();
+    displayedHP = recalculatedHP;
+
+    // Если HP отличается, обновляем в character
+    if (recalculatedHP != widget.character.hp) {
+      print('   ⚠️  HP изменено с ${widget.character.hp} на $recalculatedHP');
+      widget.character.hp = recalculatedHP;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Используем отображаемое HP (которое может быть пересчитано)
+    final displayHP = widget.character.hp;
     final calculatedAC = widget.character.getCalculatedAC();
 
     return SingleChildScrollView(
@@ -58,7 +77,7 @@ class _InfoScreenState extends State<InfoScreen> {
                     _buildInfoRow('Уровень:', '${widget.character.level}'),
                     _buildInfoRow('Опыт:', '${widget.character.level * 1000}'),
                     const Divider(height: 24),
-                    _buildInfoRow('ХП:', '${widget.character.hp}'),
+                    _buildInfoRow('ХП:', '${displayHP}'),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

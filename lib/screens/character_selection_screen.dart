@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/character.dart';
 import '../models/inventory.dart';
 import '../services/firestore_service.dart';
+import '../services/storage_service.dart';
 import '../services/auth_service.dart';
 import 'main_navigation_screen.dart';
 import 'character_creation_screen.dart';
@@ -33,6 +34,15 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
   }
 
    void _selectCharacter(Character character) async {
+     // Пересчитываем HP перед использованием
+     print('🔄 Выбран персонаж: ${character.name}');
+     print('   HP до пересчета: ${character.hp}');
+     final recalculatedHP = character.recalculateHP();
+     if (recalculatedHP != character.hp) {
+       print('   ⚠️  HP изменено с ${character.hp} на $recalculatedHP');
+       character.hp = recalculatedHP;
+     }
+
      // Обновляем currentCharacterId в User профиле
      await _authService.updateUserProfile(
        uid: _userId,
@@ -41,12 +51,35 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
      if (!mounted) return;
 
+     // Загружаем инвентарь для этого персонажа
+     Inventory? loadedInventory;
+     try {
+       // Сначала пытаемся загрузить из локального хранилища
+        final charId = character.id ?? character.name;
+        loadedInventory = await StorageService.loadInventory(charId);
+
+       // Если локально не найдено, пытаемся загрузить из Firestore
+       if (loadedInventory == null && character.id != null) {
+         final firestoreData = await _firestoreService.getInventory(_userId, character.id!);
+         if (firestoreData != null) {
+           final items = firestoreData['items'] as List<dynamic>? ?? [];
+           loadedInventory = Inventory.fromList(items);
+           // Сохраняем локально для дальнейшего использования
+            await StorageService.saveInventory(charId, loadedInventory);
+         }
+       }
+     } catch (e) {
+       debugPrint('Ошибка загрузки инвентаря: $e');
+     }
+
+     if (!mounted) return;
+
      // Переходим на главный экран
      Navigator.of(context).pushAndRemoveUntil(
        MaterialPageRoute(
          builder: (context) => MainNavigationScreen(
            character: character,
-           inventory: Inventory(),
+           inventory: loadedInventory ?? Inventory(),
          ),
        ),
        (route) => false,
@@ -192,6 +225,8 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           itemCount: characters.length,
                         itemBuilder: (context, index) {
                              final character = characters[index];
+                             // Пересчитываем HP для отображения в списке
+                             final displayHP = character.recalculateHP();
                              return Padding(
                                padding: const EdgeInsets.only(bottom: 12),
                                child: Card(
@@ -206,7 +241,7 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                                      ),
                                    ),
                                    subtitle: Text(
-                                     'Уровень ${character.level} • HP: ${character.hp} • AC: ${character.ac}',
+                                     'Уровень ${character.level} • HP: $displayHP • AC: ${character.ac}',
                                      style: TextStyle(color: Colors.grey[400]),
                                    ),
                                    trailing: PopupMenuButton(

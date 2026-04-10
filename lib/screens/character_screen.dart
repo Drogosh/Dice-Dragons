@@ -65,16 +65,7 @@ class _CharacterScreenState extends State<CharacterScreen> {
     );
   }
 
-  // Информация о персонаже
-  // Widget _buildCharacterInfo(BuildContext context) {
-  //   ...removed...
-  // }
-
-  // Строка информации
-  // Widget _buildInfoRow(String label, String value) {
-  //   ...removed...
-  // }
-
+  // ...existing code...
 
   Widget _buildAbilitiesSection(BuildContext context) {
     return Card(

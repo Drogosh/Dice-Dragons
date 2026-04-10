@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import '../models/item.dart';
 import '../models/item_database.dart';
 import '../models/inventory.dart';
+import '../services/storage_service.dart';
 
 class ItemDatabaseScreen extends StatefulWidget {
   final Inventory? inventory;
+  final VoidCallback? onItemChanged;
 
   const ItemDatabaseScreen({
     super.key,
     this.inventory,
+    this.onItemChanged,
   });
 
   @override
@@ -24,6 +27,14 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
     super.initState();
     itemDatabase = ItemDatabase();
     inventory = widget.inventory;
+    _loadDatabase();
+  }
+
+  /// Загрузить базу предметов из хранилища
+  Future<void> _loadDatabase() async {
+    print('📖 ItemDatabaseScreen.initState(): загружаю базу предметов');
+    await StorageService.loadItemDatabase(itemDatabase);
+    setState(() {});
   }
 
   void _showAddItemDialog() {
@@ -182,15 +193,20 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
                         ? selectedArmorType
                         : null,
                   );
-                  Navigator.pop(context);
-                  itemDatabase.addItem(newItem);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${newItem.name} добавлен в базу'),
-                      duration: const Duration(seconds: 2),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                   Navigator.pop(context);
+                   print('➕ Добавляю ${newItem.name} в базу предметов');
+                   itemDatabase.addItem(newItem);
+                   print('   ✓ Добавлено в базу');
+                   print('   📞 Сохраняю в Hive');
+                   StorageService.saveItemDatabase(itemDatabase);
+                   print('   ✅ Сохранено');
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(
+                       content: Text('${newItem.name} добавлен в базу'),
+                       duration: const Duration(seconds: 2),
+                       behavior: SnackBarBehavior.floating,
+                     ),
+                   );
                 }
               },
               child: const Text('Добавить'),
@@ -376,22 +392,27 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
           ),
         ),
         actions: [
-          if (inventory != null)
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                inventory!.addItem(item.copy());
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${item.name} добавлен в инвентарь'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('В инвентарь'),
-            ),
+         if (inventory != null)
+             ElevatedButton.icon(
+               onPressed: () {
+                 Navigator.pop(context);
+                 print('➕ Добавляю ${item.name} в инвентарь');
+                 inventory!.addItem(item.copy());
+                 print('   ✓ Добавлено в список');
+                 print('   📞 Вызываю callback сохранения');
+                 widget.onItemChanged?.call();
+                 print('   ✅ Callback вызван');
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text('${item.name} добавлен в инвентарь'),
+                     duration: const Duration(seconds: 2),
+                     behavior: SnackBarBehavior.floating,
+                   ),
+                 );
+               },
+               icon: const Icon(Icons.add),
+               label: const Text('В инвентарь'),
+             ),
           ElevatedButton.icon(
             onPressed: () {
               Navigator.pop(context);
@@ -401,20 +422,25 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
             label: const Text('Редактировать'),
           ),
           ElevatedButton.icon(
-            onPressed: () {
-              final index = itemDatabase.items.indexOf(item);
-              if (index != -1) {
-                Navigator.pop(context);
-                itemDatabase.removeItemAt(index);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('${item.name} удален из базы'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
+             onPressed: () {
+               final index = itemDatabase.items.indexOf(item);
+               if (index != -1) {
+                 Navigator.pop(context);
+                 print('🗑️  Удаляю ${item.name} из базы');
+                 itemDatabase.removeItemAt(index);
+                 print('   ✓ Удалено из базы');
+                 print('   📞 Сохраняю в Hive');
+                 StorageService.saveItemDatabase(itemDatabase);
+                 print('   ✅ Сохранено');
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text('${item.name} удален из базы'),
+                     duration: const Duration(seconds: 2),
+                     behavior: SnackBarBehavior.floating,
+                   ),
+                 );
+               }
+             },
             icon: const Icon(Icons.delete),
             label: const Text('Удалить'),
             style: ElevatedButton.styleFrom(
@@ -571,34 +597,39 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
             ElevatedButton(
               onPressed: () {
                 final oldName = itemDatabase.items[index].name;
-                Navigator.pop(context);
-                itemDatabase.updateItem(index, Item(
-                  name: nameController.text,
-                  type: selectedType,
-                  description: descriptionController.text,
-                  bonus: int.tryParse(bonusController.text) ?? 0,
-                  damage: selectedType == ItemType.weapon
-                      ? damageController.text.isNotEmpty
-                          ? damageController.text
-                          : null
-                      : null,
-                  damageType: selectedType == ItemType.weapon
-                      ? selectedDamageType
-                      : null,
-                  armorClass: selectedType == ItemType.armor
-                      ? int.tryParse(acController.text)
-                      : null,
-                  armorType: selectedType == ItemType.armor
-                      ? selectedArmorType
-                      : null,
-                ));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$oldName обновлен'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                 Navigator.pop(context);
+                 print('✏️  Редактирую $oldName в базе');
+                 itemDatabase.updateItem(index, Item(
+                   name: nameController.text,
+                   type: selectedType,
+                   description: descriptionController.text,
+                   bonus: int.tryParse(bonusController.text) ?? 0,
+                   damage: selectedType == ItemType.weapon
+                       ? damageController.text.isNotEmpty
+                           ? damageController.text
+                           : null
+                       : null,
+                   damageType: selectedType == ItemType.weapon
+                       ? selectedDamageType
+                       : null,
+                   armorClass: selectedType == ItemType.armor
+                       ? int.tryParse(acController.text)
+                       : null,
+                   armorType: selectedType == ItemType.armor
+                       ? selectedArmorType
+                       : null,
+                 ));
+                 print('   ✓ Обновлено в базе');
+                 print('   📞 Сохраняю в Hive');
+                 StorageService.saveItemDatabase(itemDatabase);
+                 print('   ✅ Сохранено');
+                 ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text('$oldName обновлен'),
+                     duration: const Duration(seconds: 2),
+                     behavior: SnackBarBehavior.floating,
+                   ),
+                 );
               },
               child: const Text('Сохранить'),
             ),
@@ -706,21 +737,26 @@ class _ItemDatabaseScreenState extends State<ItemDatabaseScreen> {
                             ],
                           ),
                           trailing: inventory != null
-                            ? IconButton(
-                                icon: const Icon(Icons.add),
-                                onPressed: () {
-                                  inventory!.addItem(item.copy());
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${item.name} добавлен в инвентарь'),
-                                      duration: const Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                tooltip: 'Добавить в инвентарь',
-                              )
-                            : null,
+                             ? IconButton(
+                                 icon: const Icon(Icons.add),
+                                 onPressed: () {
+                                   print('➕ Добавляю ${item.name} в инвентарь');
+                                   inventory!.addItem(item.copy());
+                                   print('   ✓ Добавлено в список');
+                                   print('   📞 Вызываю callback сохранения');
+                                   widget.onItemChanged?.call();
+                                   print('   ✅ Callback вызван');
+                                   ScaffoldMessenger.of(context).showSnackBar(
+                                     SnackBar(
+                                       content: Text('${item.name} добавлен в инвентарь'),
+                                       duration: const Duration(seconds: 2),
+                                       behavior: SnackBarBehavior.floating,
+                                     ),
+                                   );
+                                 },
+                                 tooltip: 'Добавить в инвентарь',
+                               )
+                             : null,
                         ),
                       );
                     },

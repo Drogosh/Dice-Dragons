@@ -7,11 +7,13 @@ import 'item_database_screen.dart';
 class InventoryScreen extends StatefulWidget {
   final Inventory inventory;
   final Character character;
+  final VoidCallback? onItemChanged;
 
   const InventoryScreen({
     super.key,
     required this.inventory,
     required this.character,
+    this.onItemChanged,
   });
 
   @override
@@ -27,271 +29,103 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.initState();
     inventory = widget.inventory;
     character = widget.character;
+    print('✅ InventoryScreen.initState()');
+    print('   inventory items: ${inventory.getItemCount()}');
+    print('   onItemChanged callback: ${widget.onItemChanged != null ? "ДА ✓" : "НЕТ ✗"}');
   }
 
-  void _showAddItemDialog() {
-    final nameController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final damageController = TextEditingController();
-    final bonusController = TextEditingController();
-    final acController = TextEditingController();
 
-    ItemType selectedType = ItemType.miscellaneous;
-    DamageType? selectedDamageType = DamageType.slashing;
-    ArmorType? selectedArmorType = ArmorType.light;
 
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Добавить предмет'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Название предмета',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Описание',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 2,
-                ),
-                const SizedBox(height: 16),
-                DropdownButton<ItemType>(
-                  value: selectedType,
-                  isExpanded: true,
-                  items: ItemType.values.map((type) {
-                    String label = _getTypeLabel(type);
-                    return DropdownMenuItem(
-                      value: type,
-                      child: Text(label),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        selectedType = value;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 16),
+   void _equipUnequipItem(Item item) {
+     if (item.type == ItemType.weapon) {
+       // Проверяем надеты ли это оружие
+       bool isEquipped = character.equippedWeapons.contains(item);
 
-                // Поля для оружия
-                if (selectedType == ItemType.weapon) ...[
-                  TextField(
-                    controller: damageController,
-                    decoration: const InputDecoration(
-                      labelText: 'Урон (например: 1d8)',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Тип урона:'),
-                  DropdownButton<DamageType>(
-                    value: selectedDamageType,
-                    isExpanded: true,
-                    items: DamageType.values.map((type) {
-                      String label = _getDamageTypeLabel(type);
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(label),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedDamageType = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
+       if (isEquipped) {
+         // Снимаем оружие
+         final slotIndex = character.equippedWeapons.indexOf(item);
+         character.unequipWeapon(slotIndex);
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+             content: Text('${item.name} снято'),
+             duration: const Duration(seconds: 2),
+             behavior: SnackBarBehavior.floating,
+           ),
+         );
+       } else {
+         // Ищем свободный слот
+         final emptySlot = character.equippedWeapons.indexWhere((w) => w == null);
+         if (emptySlot != -1) {
+           character.equipWeapon(emptySlot, item);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('${item.name} надено (слот ${emptySlot + 1})'),
+               duration: const Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+         } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(
+               content: Text('Все слоты для оружия заняты'),
+               duration: Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+           return;
+         }
+       }
+     } else if (item.type == ItemType.armor) {
+       if (item.armorType == ArmorType.shield) {
+         // Щит
+         if (character.equippedShield == item) {
+           character.equipShield(null);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('${item.name} снято'),
+               duration: const Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+         } else {
+           character.equipShield(item);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('${item.name} надено'),
+               duration: const Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+         }
+       } else {
+         // Броня
+         if (character.equippedArmor == item) {
+           character.equipArmor(null);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('${item.name} снято'),
+               duration: const Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+         } else {
+           character.equipArmor(item);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text('${item.name} надено (AC: ${character.getCalculatedAC()})'),
+               duration: const Duration(seconds: 2),
+               behavior: SnackBarBehavior.floating,
+             ),
+           );
+         }
+       }
+     }
 
-                // Поля для брони
-                if (selectedType == ItemType.armor) ...[
-                  TextField(
-                    controller: acController,
-                    decoration: const InputDecoration(
-                      labelText: 'Класс брони',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Тип брони:'),
-                  DropdownButton<ArmorType>(
-                    value: selectedArmorType,
-                    isExpanded: true,
-                    items: ArmorType.values.map((type) {
-                      String label = _getArmorTypeLabel(type);
-                      return DropdownMenuItem(
-                        value: type,
-                        child: Text(label),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedArmorType = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-
-                // Бонус для всех
-                TextField(
-                  controller: bonusController,
-                  decoration: const InputDecoration(
-                    labelText: 'Бонус (опционально)',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Отмена'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  final newItem = Item(
-                    name: nameController.text,
-                    type: selectedType,
-                    description: descriptionController.text,
-                    bonus: int.tryParse(bonusController.text) ?? 0,
-                    damage: selectedType == ItemType.weapon
-                        ? damageController.text.isNotEmpty
-                            ? damageController.text
-                            : null
-                        : null,
-                    damageType: selectedType == ItemType.weapon
-                        ? selectedDamageType
-                        : null,
-                    armorClass: selectedType == ItemType.armor
-                        ? int.tryParse(acController.text)
-                        : null,
-                    armorType: selectedType == ItemType.armor
-                        ? selectedArmorType
-                        : null,
-                  );
-                  setState(() {
-                    inventory.addItem(newItem);
-                  });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Добавить'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _equipUnequipItem(Item item) {
-    if (item.type == ItemType.weapon) {
-      // Проверяем надеты ли это оружие
-      bool isEquipped = character.equippedWeapons.contains(item);
-
-      if (isEquipped) {
-        // Снимаем оружие
-        final slotIndex = character.equippedWeapons.indexOf(item);
-        character.unequipWeapon(slotIndex);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item.name} снято'),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        // Ищем свободный слот
-        final emptySlot = character.equippedWeapons.indexWhere((w) => w == null);
-        if (emptySlot != -1) {
-          character.equipWeapon(emptySlot, item);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} надено (слот ${emptySlot + 1})'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Все слоты для оружия заняты'),
-              duration: Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-          return;
-        }
-      }
-    } else if (item.type == ItemType.armor) {
-      if (item.armorType == ArmorType.shield) {
-        // Щит
-        if (character.equippedShield == item) {
-          character.equipShield(null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} снято'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          character.equipShield(item);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} надено'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } else {
-        // Броня
-        if (character.equippedArmor == item) {
-          character.equipArmor(null);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} снято'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          character.equipArmor(item);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.name} надено (AC: ${character.getCalculatedAC()})'),
-              duration: const Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      }
-    }
-
-    setState(() {});
-  }
+      setState(() {});
+      print('📞 Вызываю callback сохранения после изменения предмета');
+      widget.onItemChanged?.call();
+      print('✅ Callback вызван');
+   }
 
   bool _isItemEquipped(Item item) {
     if (item.type == ItemType.weapon) {
@@ -650,42 +484,45 @@ class _InventoryScreenState extends State<InventoryScreen> {
               child: const Text('Отмена'),
             ),
             ElevatedButton(
-              onPressed: () {
-                final oldName = inventory.items[index].name;
-                // Закрываем диалог
-                Navigator.pop(context);
-                // Обновляем предмет с автообновлением UI
-                this.setState(() {
-                  inventory.items[index] = Item(
-                    name: nameController.text,
-                    type: selectedType,
-                    description: descriptionController.text,
-                    bonus: int.tryParse(bonusController.text) ?? 0,
-                    damage: selectedType == ItemType.weapon
-                        ? damageController.text.isNotEmpty
-                            ? damageController.text
-                            : null
-                        : null,
-                    damageType: selectedType == ItemType.weapon
-                        ? selectedDamageType
-                        : null,
-                    armorClass: selectedType == ItemType.armor
-                        ? int.tryParse(acController.text)
-                        : null,
-                    armorType: selectedType == ItemType.armor
-                        ? selectedArmorType
-                        : null,
-                  );
-                });
-                // Показываем сообщение об успехе
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('$oldName обновлен'),
-                    duration: const Duration(seconds: 2),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
+               onPressed: () {
+                 final oldName = inventory.items[index].name;
+                 // Закрываем диалог
+                 Navigator.pop(context);
+                 // Обновляем предмет с автообновлением UI
+                 this.setState(() {
+                   inventory.items[index] = Item(
+                     name: nameController.text,
+                     type: selectedType,
+                     description: descriptionController.text,
+                     bonus: int.tryParse(bonusController.text) ?? 0,
+                     damage: selectedType == ItemType.weapon
+                         ? damageController.text.isNotEmpty
+                             ? damageController.text
+                             : null
+                         : null,
+                     damageType: selectedType == ItemType.weapon
+                         ? selectedDamageType
+                         : null,
+                     armorClass: selectedType == ItemType.armor
+                         ? int.tryParse(acController.text)
+                         : null,
+                     armorType: selectedType == ItemType.armor
+                         ? selectedArmorType
+                         : null,
+                   );
+                  });
+                  print('📞 Вызываю callback сохранения после редактирования');
+                  widget.onItemChanged?.call();
+                  print('✅ Callback вызван');
+                  // Показываем сообщение об успехе
+                  ScaffoldMessenger.of(context).showSnackBar(
+                   SnackBar(
+                     content: Text('$oldName обновлен'),
+                     duration: const Duration(seconds: 2),
+                     behavior: SnackBarBehavior.floating,
+                   ),
+                 );
+               },
               child: const Text('Сохранить'),
             ),
           ],
@@ -702,27 +539,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Инвентарь (${inventory.getItemCount()})',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ItemDatabaseScreen(inventory: inventory),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.library_books),
-                  label: const Text('База'),
-                ),
-              ],
-            ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Инвентарь (${inventory.getItemCount()})',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ItemDatabaseScreen(
+                            inventory: inventory,
+                            onItemChanged: widget.onItemChanged,
+                          ),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.library_books),
+                    label: const Text('База'),
+                  ),
+                ],
+              ),
             const SizedBox(height: 16),
 
             // Список предметов
@@ -827,22 +667,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                onTap: () => _showEditItemDialog(actualIndex),
                                child: const Text('Редактировать'),
                              ),
-                              PopupMenuItem(
-                                onTap: () {
-                                  final itemName = inventory.items[actualIndex].name;
-                                  setState(() {
-                                    inventory.removeItemAt(actualIndex);
-                                  });
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('$itemName удален из инвентаря'),
-                                      duration: const Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                child: const Text('Удалить'),
-                              ),
+                                PopupMenuItem(
+                                  onTap: () {
+                                    final itemName = inventory.items[actualIndex].name;
+                                    setState(() {
+                                      inventory.removeItemAt(actualIndex);
+                                    });
+                                    print('📞 Вызываю callback сохранения после удаления');
+                                    widget.onItemChanged?.call();
+                                    print('✅ Callback вызван');
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('$itemName удален из инвентаря'),
+                                        duration: const Duration(seconds: 2),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                 child: const Text('Удалить'),
+                               ),
                            ],
                          ),
                        ),

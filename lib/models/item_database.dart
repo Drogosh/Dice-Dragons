@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'item.dart';
 
 class ItemDatabase extends ChangeNotifier {
@@ -48,21 +49,25 @@ class ItemDatabase extends ChangeNotifier {
   void addItem(Item item) {
     items.add(item);
     notifyListeners();
+    _saveDatabase();
   }
 
   void removeItem(Item item) {
     items.remove(item);
     notifyListeners();
+    _saveDatabase();
   }
 
   void removeItemAt(int index) {
     items.removeAt(index);
     notifyListeners();
+    _saveDatabase();
   }
 
   void updateItem(int index, Item item) {
     items[index] = item;
     notifyListeners();
+    _saveDatabase();
   }
 
   List<Item> getAllItems() {
@@ -71,6 +76,35 @@ class ItemDatabase extends ChangeNotifier {
 
   int getItemCount() {
     return items.length;
+  }
+
+  // ==================== СОХРАНЕНИЕ И ЗАГРУЗКА ====================
+
+  /// Сохранить базу предметов в JSON
+  String toJsonString() {
+    final itemsList = items.map((item) => item.toMap()).toList();
+    return jsonEncode(itemsList);
+  }
+
+  /// Загрузить базу предметов из JSON
+  void fromJsonString(String jsonString) {
+    try {
+      final list = jsonDecode(jsonString) as List<dynamic>;
+      items.clear();
+      for (var item in list) {
+        items.add(Item.fromMap(item as Map<String, dynamic>));
+      }
+      notifyListeners();
+      print('✅ База предметов загружена (${items.length} предметов)');
+    } catch (e) {
+      print('❌ Ошибка загрузки базы предметов: $e');
+    }
+  }
+
+  /// Сохранить базу предметов локально (внутренняя логика)
+  void _saveDatabase() {
+    // Будет вызвано из StorageService
+    print('💾 ItemDatabase._saveDatabase(): ${items.length} предметов');
   }
 }
 

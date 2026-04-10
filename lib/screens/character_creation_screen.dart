@@ -113,6 +113,40 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     return true;
   }
 
+  /// Корректировать способности при выборе расы
+  void _adjustAbilitiesForRace(Race race) {
+    // Проверяем каждую характеристику и снижаем её если она превышает 20 с бонусом расы
+    if (_strength + race.strengthBonus > 20) {
+      _strength = 20 - race.strengthBonus;
+    }
+    if (_dexterity + race.dexterityBonus > 20) {
+      _dexterity = 20 - race.dexterityBonus;
+    }
+    if (_constitution + race.constitutionBonus > 20) {
+      _constitution = 20 - race.constitutionBonus;
+    }
+    if (_intelligence + race.intelligenceBonus > 20) {
+      _intelligence = 20 - race.intelligenceBonus;
+    }
+    if (_wisdom + race.wisdomBonus > 20) {
+      _wisdom = 20 - race.wisdomBonus;
+    }
+    if (_charisma + race.charismaBonus > 20) {
+      _charisma = 20 - race.charismaBonus;
+    }
+    
+    // Пересчитываем HP при изменении constitution
+    if (_selectedClass != null) {
+      print('🔄 Пересчитываю HP при выборе расы');
+      int conModifier = (_constitution + race.constitutionBonus - 10) ~/ 2;
+      int newHp = _selectedClass!.hitDice + conModifier;
+      print('   Constitution: $_constitution + ${race.constitutionBonus} = ${_constitution + race.constitutionBonus}');
+      print('   Con Modifier: $conModifier');
+      print('   HP: ${_selectedClass!.hitDice} + $conModifier = $newHp');
+      _hp = newHp;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -506,6 +540,8 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
               final race = standardRaces[index];
               return GestureDetector(
                 onTap: () {
+                  // Проверяем, не превышает ли какая-то характеристика 20 с учетом бонусов расы
+                  _adjustAbilitiesForRace(race);
                   setState(() => _selectedRace = race);
                   Navigator.pop(context);
                 },
@@ -569,8 +605,22 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                   setState(() {
                     _selectedClass = charClass;
                     // Авторасчет HP: кость хитов + модификатор телосложения на 1 уровне
-                    int conModifier = (_constitution + (_selectedRace?.constitutionBonus ?? 0) - 10) ~/ 2;
+                    int baseConstitution = _constitution;
+                    if (_selectedRace != null) {
+                      baseConstitution = _constitution + _selectedRace!.constitutionBonus;
+                    }
+                    int conModifier = (baseConstitution - 10) ~/ 2;
                     _hp = charClass.hitDice + conModifier;
+                    
+                    print('🏆 Выбран класс: ${charClass.name}');
+                    print('   Hit Dice: ${charClass.hitDice}');
+                    if (_selectedRace != null) {
+                      print('   Constitution: $_constitution + ${_selectedRace!.constitutionBonus} = $baseConstitution');
+                    } else {
+                      print('   Constitution: $baseConstitution');
+                    }
+                    print('   Con Modifier: $conModifier');
+                    print('   HP: ${charClass.hitDice} + $conModifier = $_hp');
                   });
                   Navigator.pop(context);
                 },

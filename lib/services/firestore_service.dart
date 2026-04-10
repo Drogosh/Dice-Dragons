@@ -53,7 +53,7 @@ class FirestoreService {
     }
   }
 
-  /// Получить все персонажей пользователя
+  /// Получить все персонацев пользователя
   Future<List<Character>> getUserCharacters(String userId) async {
     try {
       final querySnapshot = await _firestore
@@ -69,11 +69,11 @@ class FirestoreService {
               }))
           .toList();
     } catch (e) {
-      throw 'Ошибка получения персонажей: $e';
+      throw 'Ошибка получения персонацев: $e';
     }
   }
 
-  /// Получить персонажа по ID
+  /// Получить персонаца по ID
   Future<Character?> getCharacterById(String userId, String charId) async {
     try {
       final doc = await _firestore
@@ -91,11 +91,11 @@ class FirestoreService {
       }
       return null;
     } catch (e) {
-      throw 'Ошибка получения персонажа: $e';
+      throw 'Ошибка получения персонаца: $e';
     }
   }
 
-   /// Обновить персонажа
+   /// Обновить персонаца
   Future<void> updateCharacter(String userId, String charId, Character character) async {
     try {
       // Сохраняем профессиональности навыков
@@ -103,6 +103,18 @@ class FirestoreService {
       character.skills.forEach((skill, modifier) {
         skillProficiencies[skill.toString()] = modifier.isProficient;
       });
+
+      // Сохраняем надетые предметы
+      Map<String, dynamic> equippedItems = {};
+      if (character.equippedArmor != null) {
+        equippedItems['armor'] = character.equippedArmor!.toMap();
+      }
+      if (character.equippedShield != null) {
+        equippedItems['shield'] = character.equippedShield!.toMap();
+      }
+      equippedItems['weapons'] = character.equippedWeapons
+          .map((weapon) => weapon != null ? weapon.toMap() : null)
+          .toList();
 
       await _firestore
           .collection('users')
@@ -121,14 +133,15 @@ class FirestoreService {
         'wisdom': character.wisdom,
         'charisma': character.charisma,
         'skillProficiencies': skillProficiencies,
+        'equippedItems': equippedItems,
         'updatedAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {
-      throw 'Ошибка обновления персонажа: $e';
+      throw 'Ошибка обновления персонаца: $e';
     }
   }
 
-  /// Удалить персонажа
+  /// Удалить персонаца
   Future<void> deleteCharacter(String userId, String charId) async {
     try {
       await _firestore
@@ -138,7 +151,7 @@ class FirestoreService {
           .doc(charId)
           .delete();
     } catch (e) {
-      throw 'Ошибка удаления персонажа: $e';
+      throw 'Ошибка удаления персонаца: $e';
     }
   }
 
@@ -238,7 +251,7 @@ class FirestoreService {
     );
   }
 
-   /// Слушать персонажей пользователя в реальном времени
+   /// Слушать персонацев пользователя в реальном времени
    Stream<List<Character>> getUserCharactersStream(String userId) {
      return _firestore
          .collection('users')
@@ -257,7 +270,7 @@ class FirestoreService {
 
   // ==================== ИНВЕНТАРЬ ====================
 
-  /// Сохранить инвентарь персонажа
+  /// Сохранить инвентарь персонаца
   Future<void> saveInventory(String userId, String charId, Map<String, dynamic> inventoryData) async {
     try {
       await _firestore
@@ -273,7 +286,7 @@ class FirestoreService {
     }
   }
 
-  /// Загрузить инвентарь персонажа
+  /// Загрузить инвентарь персонаца
   Future<Map<String, dynamic>?> getInventory(String userId, String charId) async {
     try {
       final doc = await _firestore
