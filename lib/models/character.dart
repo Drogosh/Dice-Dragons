@@ -55,6 +55,14 @@ class Character {
   int wisdom;        // Мудрость
   int charisma;      // Харизма
 
+  // Спасброски (мастерство для спасбросков)
+  bool strengthSaveProficiency = false;
+  bool dexteritySaveProficiency = false;
+  bool constitutionSaveProficiency = false;
+  bool intelligenceSaveProficiency = false;
+  bool wisdomSaveProficiency = false;
+  bool charismaSaveProficiency = false;
+
   // Навыки
   late Map<Skill, SkillModifier> skills;
 
@@ -310,6 +318,14 @@ class Character {
   int getWisdomModifier() => getAbilityModifier(wisdom);
   int getCharismaModifier() => getAbilityModifier(charisma);
 
+  // Методы для получения спасбросков
+  int getStrengthSave() => getAbilityModifier(strength) + (strengthSaveProficiency ? proficiencyBonus : 0);
+  int getDexteritySave() => getAbilityModifier(dexterity) + (dexteritySaveProficiency ? proficiencyBonus : 0);
+  int getConstitutionSave() => getAbilityModifier(constitution) + (constitutionSaveProficiency ? proficiencyBonus : 0);
+  int getIntelligenceSave() => getAbilityModifier(intelligence) + (intelligenceSaveProficiency ? proficiencyBonus : 0);
+  int getWisdomSave() => getAbilityModifier(wisdom) + (wisdomSaveProficiency ? proficiencyBonus : 0);
+  int getCharismaSave() => getAbilityModifier(charisma) + (charismaSaveProficiency ? proficiencyBonus : 0);
+
    // Для сериализации/десериализации
    Map<String, dynamic> toMap() {
      // Сохраняем профессиональности навыков
@@ -330,25 +346,31 @@ class Character {
          .map((weapon) => weapon != null ? weapon.toMap() : null)
          .toList();
 
-     return {
-       'id': id ?? name,
-       'name': name,
-       'level': level,
-       'hp': hp,
-       'ac': ac,
-       'strength': strength,
-       'dexterity': dexterity,
-       'constitution': constitution,
-       'intelligence': intelligence,
-       'wisdom': wisdom,
-       'charisma': charisma,
-       'raceId': raceId,
-       'className': className,
-       'raceName': raceName,
-       'classNameDisplay': classNameDisplay,
-       'skillProficiencies': skillProficiencies,
-       'equippedItems': equippedItems,
-     };
+      return {
+        'id': id ?? name,
+        'name': name,
+        'level': level,
+        'hp': hp,
+        'ac': ac,
+        'strength': strength,
+        'dexterity': dexterity,
+        'constitution': constitution,
+        'intelligence': intelligence,
+        'wisdom': wisdom,
+        'charisma': charisma,
+        'strengthSaveProficiency': strengthSaveProficiency,
+        'dexteritySaveProficiency': dexteritySaveProficiency,
+        'constitutionSaveProficiency': constitutionSaveProficiency,
+        'intelligenceSaveProficiency': intelligenceSaveProficiency,
+        'wisdomSaveProficiency': wisdomSaveProficiency,
+        'charismaSaveProficiency': charismaSaveProficiency,
+        'raceId': raceId,
+        'className': className,
+        'raceName': raceName,
+        'classNameDisplay': classNameDisplay,
+        'skillProficiencies': skillProficiencies,
+        'equippedItems': equippedItems,
+      };
    }
 
   factory Character.fromMap(Map<String, dynamic> map) {
@@ -369,6 +391,14 @@ class Character {
       raceName: map['raceName'] as String?,
       classNameDisplay: map['classNameDisplay'] as String?,
     );
+
+    // Загружаем спасброски
+    character.strengthSaveProficiency = map['strengthSaveProficiency'] as bool? ?? false;
+    character.dexteritySaveProficiency = map['dexteritySaveProficiency'] as bool? ?? false;
+    character.constitutionSaveProficiency = map['constitutionSaveProficiency'] as bool? ?? false;
+    character.intelligenceSaveProficiency = map['intelligenceSaveProficiency'] as bool? ?? false;
+    character.wisdomSaveProficiency = map['wisdomSaveProficiency'] as bool? ?? false;
+    character.charismaSaveProficiency = map['charismaSaveProficiency'] as bool? ?? false;
 
      // Восстанавливаем профессиональности навыков
      if (map['skillProficiencies'] is Map) {

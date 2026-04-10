@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/character.dart';
 import '../services/firestore_service.dart';
-import '../widgets/stat_card.dart';
+import '../widgets/ability_card.dart';
 
 class CharacterScreen extends StatefulWidget {
   final Character character;
@@ -126,13 +126,13 @@ class _CharacterScreenState extends State<CharacterScreen> {
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.95,
+              childAspectRatio: 59 / 162,
               children: [
-                StatCard(
-                  name: 'Сила',
-                  abbreviation: 'STR',
-                  value: character.strength,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_str.png',
+                  abilityScore: character.strength,
                   modifier: character.getStrengthModifier(),
+                  savingThrow: character.getStrengthSave(),
                   isSelected: _isAbilitySelected('Сила'),
                   onTap: () {
                     setState(() {
@@ -144,11 +144,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     });
                   },
                 ),
-                StatCard(
-                  name: 'Ловкость',
-                  abbreviation: 'DEX',
-                  value: character.dexterity,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_dex.png',
+                  abilityScore: character.dexterity,
                   modifier: character.getDexterityModifier(),
+                  savingThrow: character.getDexteritySave(),
                   isSelected: _isAbilitySelected('Ловкость'),
                   onTap: () {
                     setState(() {
@@ -160,11 +160,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     });
                   },
                 ),
-                StatCard(
-                  name: 'Телоc.',
-                  abbreviation: 'CON',
-                  value: character.constitution,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_con.png',
+                  abilityScore: character.constitution,
                   modifier: character.getConstitutionModifier(),
+                  savingThrow: character.getConstitutionSave(),
                   isSelected: _isAbilitySelected('Телосложение'),
                   onTap: () {
                     setState(() {
@@ -176,11 +176,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     });
                   },
                 ),
-                StatCard(
-                  name: 'Интел.',
-                  abbreviation: 'INT',
-                  value: character.intelligence,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_int.png',
+                  abilityScore: character.intelligence,
                   modifier: character.getIntelligenceModifier(),
+                  savingThrow: character.getIntelligenceSave(),
                   isSelected: _isAbilitySelected('Интеллект'),
                   onTap: () {
                     setState(() {
@@ -192,11 +192,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     });
                   },
                 ),
-                StatCard(
-                  name: 'Мудрость',
-                  abbreviation: 'WIS',
-                  value: character.wisdom,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_wis.png',
+                  abilityScore: character.wisdom,
                   modifier: character.getWisdomModifier(),
+                  savingThrow: character.getWisdomSave(),
                   isSelected: _isAbilitySelected('Мудрость'),
                   onTap: () {
                     setState(() {
@@ -208,11 +208,11 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     });
                   },
                 ),
-                StatCard(
-                  name: 'Харизма',
-                  abbreviation: 'CHA',
-                  value: character.charisma,
+                AbilityCard(
+                  backgroundAsset: 'assets/images/ability_cha.png',
+                  abilityScore: character.charisma,
                   modifier: character.getCharismaModifier(),
+                  savingThrow: character.getCharismaSave(),
                   isSelected: _isAbilitySelected('Харизма'),
                   onTap: () {
                     setState(() {
