@@ -41,25 +41,24 @@ class RulesEngine {
   }
 
   /// Расчёт HP (здоровья)
-  /// HP = (базовый HP класса) + (уровень - 1) * (HD/2 или 1) + (модификатор Телосложения * уровень)
+  /// HP = maxHP костей класса + (уровень - 1) * средний результат HD + (модификатор Телосложения * уровень)
   static int calculateHP(Character character, CharacterClass? characterClass) {
-    if (characterClass == null) {
-      // Если класс не определён, используем базовый расчёт
-      int conModifier = calculateAbilityModifier(character.constitution);
-      int hpFromCon = conModifier * character.level;
-      return 8 + (character.level - 1) * 5 + hpFromCon;
-    }
-
-    int baseHP = characterClass.hpAtFirstLevel;
     int conModifier = calculateAbilityModifier(character.constitution);
 
-    // HPat each level = (d6 average or min) + CON modifier
-    // Для упрощения: средний результат костей
-    int hpPerLevel = characterClass.hpPerLevel; // d6 = 4, d8 = 5, d10 = 6, d12 = 7
+    if (characterClass == null) {
+      // Если класс не определён, используем базовый расчёт (d8)
+      int hpPerLevel = 5; // Средний результат d8
+      int totalHP = 8 + (character.level - 1) * hpPerLevel + (conModifier * character.level);
+      return totalHP.clamp(character.level, 9999);
+    }
 
-    // Общая формула:
-    // HP = базовый HP + (уровень - 1) * (средний результат HD + CON модификатор) + CON модификатор
-    int totalHP = baseHP + (character.level - 1) * hpPerLevel + (conModifier * character.level);
+    // На 1м уровне: максимум костей + модификатор
+    int baseHP = characterClass.hitDice + conModifier;
+
+    // На остальных уровнях: средний результат костей + модификатор
+    // d6 = 4, d8 = 5, d10 = 6, d12 = 7
+    int hpPerLevel = (characterClass.hitDice / 2).ceil(); // Средний результат
+    int totalHP = baseHP + (character.level - 1) * hpPerLevel + ((character.level - 1) * conModifier);
 
     // HP не может быть меньше уровня
     return totalHP.clamp(character.level, 9999);
