@@ -23,16 +23,18 @@ class StorageService {
     return await Hive.openBox<String>(_itemDatabaseBoxName);
   }
 
-  // Сохранить персонажа
+  // Сохранить персонажа (использует стабильный ID вместо имени)
   static Future<void> saveCharacter(Character character) async {
     final box = await characterBox;
-    await box.put(character.name, character.toJsonString());
+    final characterId = character.id ?? character.name;
+    await box.put(characterId, character.toJsonString());
+    print('✅ Персонаж сохранён локально с ID: $characterId');
   }
 
-  // Загрузить персонажа по имени
-  static Future<Character?> loadCharacter(String name) async {
+  // Загрузить персонажа по ID (или имени для обратной совместимости)
+  static Future<Character?> loadCharacter(String characterId) async {
     final box = await characterBox;
-    final json = box.get(name);
+    final json = box.get(characterId);
     if (json != null) {
       return Character.fromJsonString(json);
     }
@@ -55,11 +57,11 @@ class StorageService {
     await box.delete(name);
   }
 
-  // Сохранить инвентарь
-  static Future<void> saveInventory(String characterName, Inventory inventory) async {
+  // Сохранить инвентарь (использует стабильный ID)
+  static Future<void> saveInventory(String characterId, Inventory inventory) async {
     try {
       print('💾 StorageService.saveInventory ВЫЗВАН');
-      print('   characterName: $characterName');
+      print('   characterId: $characterId');
       print('   items: ${inventory.getItemCount()}');
       
       final box = await inventoryBox;
@@ -68,7 +70,7 @@ class StorageService {
       final jsonString = inventory.toJsonString();
       print('   ✓ JSON создан: ${jsonString.length} символов');
       
-      await box.put(characterName, jsonString);
+      await box.put(characterId, jsonString);
       print('   ✅ СОХРАНЕНО В HIVE!');
     } catch (e) {
       print('   ❌ ОШИБКА СОХРАНЕНИЯ: $e');
@@ -76,22 +78,22 @@ class StorageService {
   }
 
   // Загрузить инвентарь
-  static Future<Inventory?> loadInventory(String characterName) async {
+  static Future<Inventory?> loadInventory(String characterId) async {
     try {
       print('📖 StorageService.loadInventory ВЫЗВАН');
-      print('   characterName: $characterName');
-      
+      print('   characterId: $characterId');
+
       final box = await inventoryBox;
       print('   ✓ Box открыт');
       
-      final json = box.get(characterName);
+      final json = box.get(characterId);
       if (json != null) {
         print('   ✓ JSON найден: ${json.length} символов');
         final inventory = Inventory.fromJsonString(json);
         print('   ✅ ЗАГРУЖЕНО: ${inventory.getItemCount()} предметов');
         return inventory;
       } else {
-        print('   ℹ️  JSON не найден для $characterName');
+        print('   ℹ️  JSON не найден для $characterId');
         print('   Доступные ключи: ${box.keys.toList()}');
         return null;
       }

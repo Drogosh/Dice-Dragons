@@ -31,26 +31,25 @@ class _NotesScreenState extends State<NotesScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final characterId = widget.character.id ?? widget.character.name;
+
       // Загружаем локально
-      final localNotes = await NotesService.loadNotesLocally(
-        widget.character.id ?? widget.character.name,
-      );
+      final localNotes = await NotesService.loadNotesLocally(characterId);
 
       // Загружаем из Firestore
       final userId = FirebaseAuth.instance.currentUser?.uid;
-      final charId = widget.character.id ?? widget.character.name;
 
       if (userId != null) {
         final firestoreNotes = await _notesService.loadNotesFromFirestore(
           userId,
-          charId,
+          characterId,
         );
 
         // Используем Firestore заметки если они есть
         if (firestoreNotes.isNotEmpty) {
           notes = firestoreNotes;
           // Синхронизируем локально
-          await NotesService.saveNotesLocally(charId, notes);
+          await NotesService.saveNotesLocally(characterId, notes);
         } else {
           notes = localNotes;
         }

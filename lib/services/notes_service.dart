@@ -7,12 +7,12 @@ class NotesService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Получить заметки из Hive
+  // Получить заметки из Hive (использует стабильный ID)
   static Future<List<Note>> loadNotesLocally(String characterId) async {
     try {
       final box = await Hive.openBox(_notesBoxName);
       final notesJson = box.get(characterId) as List?;
-
+      
       if (notesJson == null) {
         print('📝 Локально заметок не найдено для $characterId');
         return [];
@@ -54,7 +54,7 @@ class NotesService {
     }
   }
 
-  // Сохранить заметку локально
+  // Сохранить заметки локально
   static Future<void> saveNotesLocally(String characterId, List<Note> notes) async {
     try {
       final box = await Hive.openBox(_notesBoxName);

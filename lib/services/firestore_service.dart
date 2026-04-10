@@ -15,7 +15,7 @@ class FirestoreService {
 
   // ==================== ПЕРСОНАЖИ ====================
 
-   /// Сохранить персонажа в Firestore
+  /// Сохранить персонажа в Firestore
   Future<String> saveCharacter(String userId, Character character) async {
     try {
       // Если персонаж уже имеет ID - обновляем его
@@ -367,5 +367,52 @@ class FirestoreService {
         .snapshots()
         .map((doc) => doc.exists ? doc.data() : null);
   }
-}
 
+  // ==================== УНИФИКАЦИЯ СХЕМЫ ====================
+
+  /// Построить единую схему для персонажа (используется в create и update)
+  Map<String, dynamic> _buildCharacterData(Character character) {
+    Map<String, bool> skillProficiencies = {};
+    character.skills.forEach((skill, modifier) {
+      skillProficiencies[skill.toString()] = modifier.isProficient;
+    });
+
+    Map<String, dynamic> equippedItems = {};
+    if (character.equippedArmor != null) {
+      equippedItems['armor'] = character.equippedArmor!.toMap();
+    }
+    if (character.equippedShield != null) {
+      equippedItems['shield'] = character.equippedShield!.toMap();
+    }
+    equippedItems['weapons'] = character.equippedWeapons
+        .map((weapon) => weapon != null ? weapon.toMap() : null)
+        .toList();
+
+    return {
+      'id': character.id,
+      'name': character.name,
+      'level': character.level,
+      'hp': character.hp,
+      'ac': character.ac,
+      'strength': character.strength,
+      'dexterity': character.dexterity,
+      'constitution': character.constitution,
+      'intelligence': character.intelligence,
+      'wisdom': character.wisdom,
+      'charisma': character.charisma,
+      'raceId': character.raceId,
+      'className': character.className,
+      'raceName': character.raceName,
+      'classNameDisplay': character.classNameDisplay,
+      'strengthSaveProficiency': character.strengthSaveProficiency,
+      'dexteritySaveProficiency': character.dexteritySaveProficiency,
+      'constitutionSaveProficiency': character.constitutionSaveProficiency,
+      'intelligenceSaveProficiency': character.intelligenceSaveProficiency,
+      'wisdomSaveProficiency': character.wisdomSaveProficiency,
+      'charismaSaveProficiency': character.charismaSaveProficiency,
+      'skillProficiencies': skillProficiencies,
+      'equippedItems': equippedItems,
+      'proficiencyBonus': character.proficiencyBonus,
+    };
+  }
+}
