@@ -266,15 +266,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
          controller: _pageController,
          onPageChanged: _onPageChanged,
          children: [
-           CharacterScreen(character: currentCharacter),
-           InventoryScreen(
-             inventory: currentInventory,
-             character: currentCharacter,
-             onItemChanged: _saveInventory,
-           ),
-           InfoScreen(character: currentCharacter),
-           const SpellsScreen(),
-           const NotesScreen(),
+            CharacterScreen(character: currentCharacter),
+            InventoryScreen(
+              inventory: currentInventory,
+              character: currentCharacter,
+              onItemChanged: _saveInventory,
+            ),
+            InfoScreen(character: currentCharacter),
+            const SpellsScreen(),
+            NotesScreen(character: currentCharacter),
          ],
        ),
       bottomNavigationBar: BottomNavigationBar(
