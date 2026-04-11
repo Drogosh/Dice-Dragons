@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/character.dart';
 import '../models/inventory.dart';
@@ -28,7 +29,7 @@ class StorageService {
     final box = await characterBox;
     final characterId = character.id ?? character.name;
     await box.put(characterId, character.toJsonString());
-    print('✅ Персонаж сохранён локально с ID: $characterId');
+    debugPrint('✅ Персонаж сохранён локально с ID: $characterId');
   }
 
   // Загрузить персонажа по ID (или имени для обратной совместимости)
@@ -60,45 +61,45 @@ class StorageService {
   // Сохранить инвентарь (использует стабильный ID)
   static Future<void> saveInventory(String characterId, Inventory inventory) async {
     try {
-      print('💾 StorageService.saveInventory ВЫЗВАН');
-      print('   characterId: $characterId');
-      print('   items: ${inventory.getItemCount()}');
-      
+      debugPrint('💾 StorageService.saveInventory ВЫЗВАН');
+      debugPrint('   characterId: $characterId');
+      debugPrint('   items: ${inventory.getItemCount()}');
+
       final box = await inventoryBox;
-      print('   ✓ Box открыт');
-      
+      debugPrint('   ✓ Box открыт');
+
       final jsonString = inventory.toJsonString();
-      print('   ✓ JSON создан: ${jsonString.length} символов');
-      
+      debugPrint('   ✓ JSON создан: ${jsonString.length} символов');
+
       await box.put(characterId, jsonString);
-      print('   ✅ СОХРАНЕНО В HIVE!');
+      debugPrint('   ✅ СОХРАНЕНО В HIVE!');
     } catch (e) {
-      print('   ❌ ОШИБКА СОХРАНЕНИЯ: $e');
+      debugPrint('   ❌ ОШИБКА СОХРАНЕНИЯ: $e');
     }
   }
 
   // Загрузить инвентарь
   static Future<Inventory?> loadInventory(String characterId) async {
     try {
-      print('📖 StorageService.loadInventory ВЫЗВАН');
-      print('   characterId: $characterId');
+      debugPrint('📖 StorageService.loadInventory ВЫЗВАН');
+      debugPrint('   characterId: $characterId');
 
       final box = await inventoryBox;
-      print('   ✓ Box открыт');
-      
+      debugPrint('   ✓ Box открыт');
+
       final json = box.get(characterId);
       if (json != null) {
-        print('   ✓ JSON найден: ${json.length} символов');
+        debugPrint('   ✓ JSON найден: ${json.length} символов');
         final inventory = Inventory.fromJsonString(json);
-        print('   ✅ ЗАГРУЖЕНО: ${inventory.getItemCount()} предметов');
+        debugPrint('   ✅ ЗАГРУЖЕНО: ${inventory.getItemCount()} предметов');
         return inventory;
       } else {
-        print('   ℹ️  JSON не найден для $characterId');
-        print('   Доступные ключи: ${box.keys.toList()}');
+        debugPrint('   ℹ️  JSON не найден для $characterId');
+        debugPrint('   Доступные ключи: ${box.keys.toList()}');
         return null;
       }
     } catch (e) {
-      print('   ❌ ОШИБКА ЗАГРУЗКИ: $e');
+      debugPrint('   ❌ ОШИБКА ЗАГРУЗКИ: $e');
       return null;
     }
   }
@@ -115,44 +116,44 @@ class StorageService {
 
    // ==================== БАЗА ПРЕДМЕТОВ ====================
 
-   /// Сохранить базу предметов
-   static Future<void> saveItemDatabase(ItemDatabase database) async {
-     try {
-       print('💾 StorageService.saveItemDatabase ВЫЗВАН');
-       print('   items: ${database.getItemCount()}');
-       
-       final box = await itemDatabaseBox;
-       print('   ✓ Box открыт');
-       
-       final jsonString = database.toJsonString();
-       print('   ✓ JSON создан: ${jsonString.length} символов');
-       
-       await box.put('items', jsonString);
-       print('   ✅ СОХРАНЕНО В HIVE!');
-     } catch (e) {
-       print('   ❌ ОШИБКА СОХРАНЕНИЯ: $e');
-     }
-   }
+    /// Сохранить базу предметов
+    static Future<void> saveItemDatabase(ItemDatabase database) async {
+      try {
+        debugPrint('💾 StorageService.saveItemDatabase ВЫЗВАН');
+        debugPrint('   items: ${database.getItemCount()}');
 
-   /// Загрузить базу предметов
-   static Future<void> loadItemDatabase(ItemDatabase database) async {
-     try {
-       print('📖 StorageService.loadItemDatabase ВЫЗВАН');
-       
-       final box = await itemDatabaseBox;
-       print('   ✓ Box открыт');
-       
-       final json = box.get('items');
-       if (json != null) {
-         print('   ✓ JSON найден: ${json.length} символов');
-         database.fromJsonString(json);
-         print('   ✅ ЗАГРУЖЕНО: ${database.getItemCount()} предметов');
-       } else {
-         print('   ℹ️  База предметов еще не сохранялась (используются по умолчанию)');
-       }
-     } catch (e) {
-       print('   ❌ ОШИБКА ЗАГРУЗКИ: $e');
-     }
-   }
+        final box = await itemDatabaseBox;
+        debugPrint('   ✓ Box открыт');
+
+        final jsonString = database.toJsonString();
+        debugPrint('   ✓ JSON создан: ${jsonString.length} символов');
+
+        await box.put('items', jsonString);
+        debugPrint('   ✅ СОХРАНЕНО В HIVE!');
+      } catch (e) {
+        debugPrint('   ❌ ОШИБКА СОХРАНЕНИЯ: $e');
+      }
+    }
+
+    /// Загрузить базу предметов
+    static Future<void> loadItemDatabase(ItemDatabase database) async {
+      try {
+        debugPrint('📖 StorageService.loadItemDatabase ВЫЗВАН');
+
+        final box = await itemDatabaseBox;
+        debugPrint('   ✓ Box открыт');
+
+        final json = box.get('items');
+        if (json != null) {
+          debugPrint('   ✓ JSON найден: ${json.length} символов');
+          database.fromJsonString(json);
+          debugPrint('   ✅ ЗАГРУЖЕНО: ${database.getItemCount()} предметов');
+        } else {
+          debugPrint('   ℹ️  База предметов еще не сохранялась (используются по умолчанию)');
+        }
+      } catch (e) {
+        debugPrint('   ❌ ОШИБКА ЗАГРУЗКИ: $e');
+      }
+    }
  }
 

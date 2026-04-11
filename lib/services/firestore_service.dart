@@ -1,418 +1,116 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import '../models/character.dart';
+import 'firestore_character_service.dart';
+import 'firestore_inventory_service.dart';
+import 'firestore_session_service.dart';
 
+/// Главный сервис Firestore (использует специализированные подсервисы)
+/// Оставлен для обратной совместимости
 class FirestoreService {
   static final FirestoreService _instance = FirestoreService._internal();
-  late final FirebaseFirestore _firestore;
+  late final FirestoreCharacterService _characterService;
+  late final FirestoreInventoryService _inventoryService;
+  late final FirestoreSessionService _sessionService;
 
   factory FirestoreService() {
     return _instance;
   }
 
   FirestoreService._internal() {
-    _firestore = FirebaseFirestore.instance;
+    _characterService = FirestoreCharacterService();
+    _inventoryService = FirestoreInventoryService();
+    _sessionService = FirestoreSessionService();
   }
 
   // ==================== ПЕРСОНАЖИ ====================
 
-  /// Сохранить персонажа в Firestore
   Future<String> saveCharacter(String userId, Character character) async {
-    try {
-      // Если персонаж уже имеет ID - обновляем его
-      if (character.id != null) {
-        await updateCharacter(userId, character.id!, character);
-        return character.id!;
-      }
-
-      // Иначе создаем новый документ
-      final docRef = _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc();
-
-      await docRef.set({
-        'id': docRef.id,
-        'name': character.name,
-        'level': character.level,
-        'hp': character.hp,
-        'ac': character.ac,
-        'strength': character.strength,
-        'dexterity': character.dexterity,
-        'constitution': character.constitution,
-        'intelligence': character.intelligence,
-        'wisdom': character.wisdom,
-        'charisma': character.charisma,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      return docRef.id;
-    } catch (e) {
-      throw 'Ошибка сохранения персонажа: $e';
-    }
+    return await _characterService.saveCharacter(userId, character);
   }
 
-  /// Получить все персонацев пользователя
   Future<List<Character>> getUserCharacters(String userId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .get();
-
-      return querySnapshot.docs
-          .map((doc) => Character.fromMap({
-                ...doc.data(),
-                'id': doc.id,
-              }))
-          .toList();
-    } catch (e) {
-      throw 'Ошибка получения персонацев: $e';
-    }
+    return await _characterService.getUserCharacters(userId);
   }
 
-  /// Получить персонаца по ID
   Future<Character?> getCharacterById(String userId, String charId) async {
-    try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .get();
-
-      if (doc.exists) {
-        return Character.fromMap({
-          ...doc.data() ?? {},
-          'id': doc.id,
-        });
-      }
-      return null;
-    } catch (e) {
-      throw 'Ошибка получения персонаца: $e';
-    }
+    return await _characterService.getCharacterById(userId, charId);
   }
 
-   /// Обновить персонаца
   Future<void> updateCharacter(String userId, String charId, Character character) async {
-    try {
-      // Сохраняем профессиональности навыков
-      Map<String, bool> skillProficiencies = {};
-      character.skills.forEach((skill, modifier) {
-        skillProficiencies[skill.toString()] = modifier.isProficient;
-      });
-
-      // Сохраняем надетые предметы
-      Map<String, dynamic> equippedItems = {};
-      if (character.equippedArmor != null) {
-        equippedItems['armor'] = character.equippedArmor!.toMap();
-      }
-      if (character.equippedShield != null) {
-        equippedItems['shield'] = character.equippedShield!.toMap();
-      }
-      equippedItems['weapons'] = character.equippedWeapons
-          .map((weapon) => weapon != null ? weapon.toMap() : null)
-          .toList();
-
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .update({
-        'name': character.name,
-        'level': character.level,
-        'hp': character.hp,
-        'ac': character.ac,
-        'strength': character.strength,
-        'dexterity': character.dexterity,
-        'constitution': character.constitution,
-        'intelligence': character.intelligence,
-        'wisdom': character.wisdom,
-        'charisma': character.charisma,
-        'strengthSaveProficiency': character.strengthSaveProficiency,
-        'dexteritySaveProficiency': character.dexteritySaveProficiency,
-        'constitutionSaveProficiency': character.constitutionSaveProficiency,
-        'intelligenceSaveProficiency': character.intelligenceSaveProficiency,
-        'wisdomSaveProficiency': character.wisdomSaveProficiency,
-        'charismaSaveProficiency': character.charismaSaveProficiency,
-        'skillProficiencies': skillProficiencies,
-        'equippedItems': equippedItems,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Ошибка обновления персонаца: $e';
-    }
+    return await _characterService.updateCharacter(userId, charId, character);
   }
 
-  /// Удалить персонаца
   Future<void> deleteCharacter(String userId, String charId) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .delete();
-    } catch (e) {
-      throw 'Ошибка удаления персонаца: $e';
-    }
+    return await _characterService.deleteCharacter(userId, charId);
+  }
+
+  Stream<List<Character>> getUserCharactersStream(String userId) {
+    return _characterService.getUserCharactersStream(userId);
+  }
+
+  // ==================== ИНВЕНТАРЬ ====================
+
+  Future<void> saveInventory(
+    String userId,
+    String charId,
+    Map<String, dynamic> inventoryData,
+  ) async {
+    return await _inventoryService.saveInventory(userId, charId, inventoryData);
+  }
+
+  Future<Map<String, dynamic>?> getInventory(String userId, String charId) async {
+    return await _inventoryService.getInventory(userId, charId);
+  }
+
+  Stream<Map<String, dynamic>?> getInventoryStream(String userId, String charId) {
+    return _inventoryService.getInventoryStream(userId, charId);
+  }
+
+  Future<void> saveEquippedItems(
+    String userId,
+    String charId,
+    Map<String, dynamic> equippedData,
+  ) async {
+    return await _inventoryService.saveEquippedItems(userId, charId, equippedData);
+  }
+
+  Future<Map<String, dynamic>?> getEquippedItems(String userId, String charId) async {
+    return await _inventoryService.getEquippedItems(userId, charId);
+  }
+
+  Stream<Map<String, dynamic>?> getEquippedItemsStream(String userId, String charId) {
+    return _inventoryService.getEquippedItemsStream(userId, charId);
   }
 
   // ==================== СЕССИИ ====================
 
-  /// Создать игровую сессию (только для DM)
   Future<String> createSession(String dmId, String sessionName) async {
-    try {
-      final docRef = _firestore.collection('sessions').doc();
-
-      await docRef.set({
-        'id': docRef.id,
-        'dmId': dmId,
-        'name': sessionName,
-        'players': [],
-        'status': 'active',
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      return docRef.id;
-    } catch (e) {
-      throw 'Ошибка создания сессии: $e';
-    }
+    return await _sessionService.createSession(dmId, sessionName);
   }
 
-  /// Получить сессию по ID
   Future<Map<String, dynamic>?> getSession(String sessionId) async {
-    try {
-      final doc = await _firestore.collection('sessions').doc(sessionId).get();
-
-      if (doc.exists) {
-        return doc.data();
-      }
-      return null;
-    } catch (e) {
-      throw 'Ошибка получения сессии: $e';
-    }
+    return await _sessionService.getSession(sessionId);
   }
 
-  /// Получить все сессии DM
   Future<List<Map<String, dynamic>>> getDMSessions(String dmId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection('sessions')
-          .where('dmId', isEqualTo: dmId)
-          .get();
-
-      return querySnapshot.docs.map((doc) => doc.data()).toList();
-    } catch (e) {
-      throw 'Ошибка получения сессий: $e';
-    }
+    return await _sessionService.getDMSessions(dmId);
   }
 
-  /// Добавить игрока в сессию
   Future<void> addPlayerToSession(String sessionId, String userId) async {
-    try {
-      await _firestore.collection('sessions').doc(sessionId).update({
-        'players': FieldValue.arrayUnion([userId]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Ошибка добавления игрока: $e';
-    }
+    return await _sessionService.addPlayerToSession(sessionId, userId);
   }
 
-  /// Удалить игрока из сессии
   Future<void> removePlayerFromSession(String sessionId, String userId) async {
-    try {
-      await _firestore.collection('sessions').doc(sessionId).update({
-        'players': FieldValue.arrayRemove([userId]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Ошибка удаления игрока: $e';
-    }
+    return await _sessionService.removePlayerFromSession(sessionId, userId);
   }
 
-  /// Завершить сессию
   Future<void> endSession(String sessionId) async {
-    try {
-      await _firestore.collection('sessions').doc(sessionId).update({
-        'status': 'ended',
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      throw 'Ошибка завершения сессии: $e';
-    }
+    return await _sessionService.endSession(sessionId);
   }
 
-  // ==================== СЛУШАТЕЛИ (Real-time updates) ====================
-
-  /// Слушать сессию в реальном времени
   Stream<Map<String, dynamic>?> getSessionStream(String sessionId) {
-    return _firestore.collection('sessions').doc(sessionId).snapshots().map(
-      (doc) => doc.exists ? doc.data() : null,
-    );
-  }
-
-   /// Слушать персонацев пользователя в реальном времени
-   Stream<List<Character>> getUserCharactersStream(String userId) {
-     return _firestore
-         .collection('users')
-         .doc(userId)
-         .collection('characters')
-         .snapshots()
-         .map(
-           (querySnapshot) => querySnapshot.docs
-               .map((doc) => Character.fromMap({
-                     ...doc.data(),
-                     'id': doc.id,
-                   }))
-               .toList(),
-         );
-   }
-
-  // ==================== ИНВЕНТАРЬ ====================
-
-  /// Сохранить инвентарь персонаца
-  Future<void> saveInventory(String userId, String charId, Map<String, dynamic> inventoryData) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .collection('inventory')
-          .doc('data')
-          .set(inventoryData, SetOptions(merge: true));
-    } catch (e) {
-      throw 'Ошибка сохранения инвентаря: $e';
-    }
-  }
-
-  /// Загрузить инвентарь персонаца
-  Future<Map<String, dynamic>?> getInventory(String userId, String charId) async {
-    try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .collection('inventory')
-          .doc('data')
-          .get();
-      return doc.data();
-    } catch (e) {
-      throw 'Ошибка загрузки инвентаря: $e';
-    }
-  }
-
-  /// Слушать инвентарь в реальном времени
-  Stream<Map<String, dynamic>?> getInventoryStream(String userId, String charId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('characters')
-        .doc(charId)
-        .collection('inventory')
-        .doc('data')
-        .snapshots()
-        .map((doc) => doc.exists ? doc.data() : null);
-  }
-
-  /// Сохранить надетые предметы
-  Future<void> saveEquippedItems(String userId, String charId, Map<String, dynamic> equippedData) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .collection('equipped')
-          .doc('current')
-          .set(equippedData, SetOptions(merge: true));
-    } catch (e) {
-      throw 'Ошибка сохранения надетых предметов: $e';
-    }
-  }
-
-  /// Загрузить надетые предметы
-  Future<Map<String, dynamic>?> getEquippedItems(String userId, String charId) async {
-    try {
-      final doc = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('characters')
-          .doc(charId)
-          .collection('equipped')
-          .doc('current')
-          .get();
-      return doc.data();
-    } catch (e) {
-      throw 'Ошибка загрузки надетых предметов: $e';
-    }
-  }
-
-  /// Слушать надетые предметы в реальном времени
-  Stream<Map<String, dynamic>?> getEquippedItemsStream(String userId, String charId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('characters')
-        .doc(charId)
-        .collection('equipped')
-        .doc('current')
-        .snapshots()
-        .map((doc) => doc.exists ? doc.data() : null);
-  }
-
-  // ==================== УНИФИКАЦИЯ СХЕМЫ ====================
-
-  /// Построить единую схему для персонажа (используется в create и update)
-  Map<String, dynamic> _buildCharacterData(Character character) {
-    Map<String, bool> skillProficiencies = {};
-    character.skills.forEach((skill, modifier) {
-      skillProficiencies[skill.toString()] = modifier.isProficient;
-    });
-
-    Map<String, dynamic> equippedItems = {};
-    if (character.equippedArmor != null) {
-      equippedItems['armor'] = character.equippedArmor!.toMap();
-    }
-    if (character.equippedShield != null) {
-      equippedItems['shield'] = character.equippedShield!.toMap();
-    }
-    equippedItems['weapons'] = character.equippedWeapons
-        .map((weapon) => weapon != null ? weapon.toMap() : null)
-        .toList();
-
-    return {
-      'id': character.id,
-      'name': character.name,
-      'level': character.level,
-      'hp': character.hp,
-      'ac': character.ac,
-      'strength': character.strength,
-      'dexterity': character.dexterity,
-      'constitution': character.constitution,
-      'intelligence': character.intelligence,
-      'wisdom': character.wisdom,
-      'charisma': character.charisma,
-      'raceId': character.raceId,
-      'className': character.className,
-      'raceName': character.raceName,
-      'classNameDisplay': character.classNameDisplay,
-      'strengthSaveProficiency': character.strengthSaveProficiency,
-      'dexteritySaveProficiency': character.dexteritySaveProficiency,
-      'constitutionSaveProficiency': character.constitutionSaveProficiency,
-      'intelligenceSaveProficiency': character.intelligenceSaveProficiency,
-      'wisdomSaveProficiency': character.wisdomSaveProficiency,
-      'charismaSaveProficiency': character.charismaSaveProficiency,
-      'skillProficiencies': skillProficiencies,
-      'equippedItems': equippedItems,
-      'proficiencyBonus': character.proficiencyBonus,
-    };
+    return _sessionService.getSessionStream(sessionId);
   }
 }
+

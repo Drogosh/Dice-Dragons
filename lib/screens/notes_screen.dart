@@ -61,7 +61,7 @@ class _NotesScreenState extends State<NotesScreen> {
         setState(() => _isLoading = false);
       }
     } catch (e) {
-      print('❌ Ошибка загрузки заметок: $e');
+      debugPrint('❌ Ошибка загрузки заметок: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }

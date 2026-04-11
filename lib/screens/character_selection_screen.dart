@@ -36,11 +36,11 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
 
    void _selectCharacter(Character character) async {
      // Пересчитываем HP перед использованием
-     print('🔄 Выбран персонаж: ${character.name}');
-     print('   HP до пересчета: ${character.hp}');
+     debugPrint('🔄 Выбран персонаж: ${character.name}');
+     debugPrint('   HP до пересчета: ${character.hp}');
      final recalculatedHP = character.recalculateHP();
      if (recalculatedHP != character.hp) {
-       print('   ⚠️  HP изменено с ${character.hp} на $recalculatedHP');
+       debugPrint('   ⚠️  HP изменено с ${character.hp} на $recalculatedHP');
        character.hp = recalculatedHP;
      }
      
@@ -226,8 +226,9 @@ class _CharacterSelectionScreenState extends State<CharacterSelectionScreen> {
                           itemCount: characters.length,
                           itemBuilder: (context, index) {
                               final character = characters[index];
-                              // Пересчитываем HP для отображения в списке
-                              final displayHP = character.recalculateHP();
+                              // НЕ пересчитываем HP в build() - это было в _selectCharacter()
+                              // Отображаем текущий HP из персонажа
+                              final displayHP = character.hp;
                               // Рассчитываем реальный AC с учётом надетой брони
                               final displayAC = RulesEngine.calculateAC(character);
                               return Padding(
