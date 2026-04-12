@@ -54,69 +54,55 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
      _loadInventory();
    }
 
-    /// Восстановить надетые предметы из инвентаря
+    /// Восстановить надетые предметы из инвентаря по ID
     Future<void> _restoreEquippedItems() async {
       try {
       debugPrint('🔄 ВОССТАНАВЛИВАЮ НАДЕТЫЕ ПРЕДМЕТЫ для ${currentCharacter.name}');
-        debugPrint('   Броня сейчас: ${currentCharacter.equippedArmor?.name ?? "нет"}');
-        debugPrint('   Щит сейчас: ${currentCharacter.equippedShield?.name ?? "нет"}');
-        debugPrint('   Оружие: ${currentCharacter.equippedWeapons.map((w) => w?.name ?? "нет").toList()}');
+        debugPrint('   Броня ID: ${currentCharacter.equippedArmorId ?? "нет"}');
+        debugPrint('   Щит ID: ${currentCharacter.equippedShieldId ?? "нет"}');
+        debugPrint('   Оружие IDs: ${currentCharacter.equippedWeaponIds.toList()}');
         debugPrint('   В инвентаре предметов: ${currentInventory.items.length}');
 
-        // Восстанавливаем броню
-        if (currentCharacter.equippedArmor != null) {
-          debugPrint('   🔍 Ищу броню: ${currentCharacter.equippedArmor!.name}');
-          bool found = false;
-          for (final item in currentInventory.items) {
-            if (item.type == ItemType.armor &&
-                item.armorType != ArmorType.shield &&
-                item.name == currentCharacter.equippedArmor!.name) {
-              currentCharacter.equipArmor(item);
-              debugPrint('   ✅ Восстановлена броня: ${item.name}');
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
+        // Восстанавливаем броню по ID
+        if (currentCharacter.equippedArmorId != null) {
+          final armorId = currentCharacter.equippedArmorId!;
+          debugPrint('   🔍 Ищу броню с ID: $armorId');
+          final armorItem = currentInventory.findItemById(armorId);
+          if (armorItem != null) {
+            currentCharacter.equipArmor(armorItem);
+            debugPrint('   ✅ Восстановлена броня: ${armorItem.name}');
+          } else {
             debugPrint('   ❌ Броня не найдена в инвентаре!');
+            currentCharacter.equipArmor(null);
           }
         }
 
-        // Восстанавливаем щит
-        if (currentCharacter.equippedShield != null) {
-          debugPrint('   🔍 Ищу щит: ${currentCharacter.equippedShield!.name}');
-          bool found = false;
-          for (final item in currentInventory.items) {
-            if (item.type == ItemType.armor &&
-                item.armorType == ArmorType.shield &&
-                item.name == currentCharacter.equippedShield!.name) {
-              currentCharacter.equipShield(item);
-              debugPrint('   ✅ Восстановлен щит: ${item.name}');
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
+        // Восстанавливаем щит по ID
+        if (currentCharacter.equippedShieldId != null) {
+          final shieldId = currentCharacter.equippedShieldId!;
+          debugPrint('   🔍 Ищу щит с ID: $shieldId');
+          final shieldItem = currentInventory.findItemById(shieldId);
+          if (shieldItem != null) {
+            currentCharacter.equipShield(shieldItem);
+            debugPrint('   ✅ Восстановлен щит: ${shieldItem.name}');
+          } else {
             debugPrint('   ❌ Щит не найден в инвентаре!');
+            currentCharacter.equipShield(null);
           }
         }
 
-        // Восстанавливаем оружие
-        for (int i = 0; i < currentCharacter.equippedWeapons.length; i++) {
-          if (currentCharacter.equippedWeapons[i] != null) {
-            debugPrint('   🔍 Ищу оружие ${i+1}: ${currentCharacter.equippedWeapons[i]!.name}');
-            bool found = false;
-            for (final item in currentInventory.items) {
-              if (item.type == ItemType.weapon &&
-                  item.name == currentCharacter.equippedWeapons[i]!.name) {
-                currentCharacter.equipWeapon(i, item);
-                debugPrint('   ✅ Восстановлено оружие ${i+1}: ${item.name}');
-                found = true;
-                break;
-              }
-            }
-            if (!found) {
+        // Восстанавливаем оружие по ID
+        for (int i = 0; i < currentCharacter.equippedWeaponIds.length; i++) {
+          if (currentCharacter.equippedWeaponIds[i] != null) {
+            final weaponId = currentCharacter.equippedWeaponIds[i]!;
+            debugPrint('   🔍 Ищу оружие ${i+1} с ID: $weaponId');
+            final weaponItem = currentInventory.findItemById(weaponId);
+            if (weaponItem != null) {
+              currentCharacter.equipWeapon(i, weaponItem);
+              debugPrint('   ✅ Восстановлено оружие ${i+1}: ${weaponItem.name}');
+            } else {
               debugPrint('   ❌ Оружие ${i+1} не найдено в инвентаре!');
+              currentCharacter.unequipWeapon(i);
             }
           }
         }

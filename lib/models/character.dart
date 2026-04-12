@@ -71,6 +71,11 @@ class Character {
   Item? equippedShield;       // Щит
   List<Item?> equippedWeapons = [null, null, null]; // 3 оружия (слоты 0, 1, 2)
 
+  // ID надетых предметов для восстановления из инвентаря
+  String? equippedArmorId;
+  String? equippedShieldId;
+  List<String?> equippedWeaponIds = [null, null, null];
+
   Character({
     this.id,
     required this.name,
@@ -334,16 +339,16 @@ class Character {
        skillProficiencies[skill.toString()] = modifier.isProficient;
      });
 
-     // Сохраняем надетые предметы
+     // Сохраняем только ID надетых предметов (не целый объект)
      Map<String, dynamic> equippedItems = {};
      if (equippedArmor != null) {
-       equippedItems['armor'] = equippedArmor!.toMap();
+       equippedItems['armorId'] = equippedArmor!.id;
      }
      if (equippedShield != null) {
-       equippedItems['shield'] = equippedShield!.toMap();
+       equippedItems['shieldId'] = equippedShield!.id;
      }
-     equippedItems['weapons'] = equippedWeapons
-         .map((weapon) => weapon != null ? weapon.toMap() : null)
+     equippedItems['weaponIds'] = equippedWeapons
+         .map((weapon) => weapon != null ? weapon.id : null)
          .toList();
 
       return {
@@ -424,37 +429,21 @@ class Character {
      // Восстанавливаем надетые предметы
      if (map['equippedItems'] is Map) {
        final equipped = map['equippedItems'] as Map<String, dynamic>;
-       print('📦 ЗАГРУЖАЮ НАДЕТЫЕ ПРЕДМЕТЫ из Map');
+       print('📦 ЗАГРУЖАЮ ID НАДЕТЫХ ПРЕДМЕТОВ из Map');
        
-       // Загружаем броню
-       if (equipped['armor'] is Map) {
-         try {
-           character.equippedArmor = Item.fromMap(equipped['armor'] as Map<String, dynamic>);
-         } catch (e) {
-           print('Ошибка загрузки брони: $e');
-         }
+       // Сохраняем ID для восстановления позже (в MainNavigationScreen)
+       if (equipped['armorId'] is String) {
+         character.equippedArmorId = equipped['armorId'] as String;
        }
-       
-       // Загружаем щит
-       if (equipped['shield'] is Map) {
-         try {
-           character.equippedShield = Item.fromMap(equipped['shield'] as Map<String, dynamic>);
-         } catch (e) {
-           print('Ошибка загрузки щита: $e');
-         }
+       if (equipped['shieldId'] is String) {
+         character.equippedShieldId = equipped['shieldId'] as String;
        }
-       
-       // Загружаем оружие
-       if (equipped['weapons'] is List) {
-         try {
-           final weaponsList = equipped['weapons'] as List<dynamic>;
-           for (int i = 0; i < weaponsList.length && i < 3; i++) {
-             if (weaponsList[i] is Map) {
-               character.equippedWeapons[i] = Item.fromMap(weaponsList[i] as Map<String, dynamic>);
-             }
+       if (equipped['weaponIds'] is List) {
+         final weaponIds = equipped['weaponIds'] as List<dynamic>;
+         for (int i = 0; i < weaponIds.length && i < 3; i++) {
+           if (weaponIds[i] is String) {
+             character.equippedWeaponIds[i] = weaponIds[i] as String;
            }
-         } catch (e) {
-           print('Ошибка загрузки оружия: $e');
          }
        }
      }

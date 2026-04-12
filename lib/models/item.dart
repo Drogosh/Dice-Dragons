@@ -1,4 +1,5 @@
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 
 part 'item.g.dart';
 
@@ -55,6 +56,7 @@ enum ArmorType {
 }
 
 class Item {
+  final String id;  // Уникальный идентификатор предмета
   String name;
   ItemType type;
   String description;
@@ -69,6 +71,7 @@ class Item {
   ArmorType? armorType;
 
   Item({
+    String? id,
     required this.name,
     required this.type,
     required this.description,
@@ -77,11 +80,12 @@ class Item {
     this.damageType,
     this.armorClass,
     this.armorType,
-  });
+  }) : id = id ?? const Uuid().v4();
 
   // Для сериализации/десериализации
   Map<String, dynamic> toMap() {
     return {
+      'id': id,
       'name': name,
       'type': type.toString(),
       'description': description,
@@ -95,6 +99,7 @@ class Item {
 
   factory Item.fromMap(Map<String, dynamic> map) {
     return Item(
+      id: map['id'] as String?,
       name: map['name'] as String,
       type: ItemType.values.firstWhere(
         (e) => e.toString() == map['type'],
@@ -124,9 +129,22 @@ class Item {
     return 'Item: $name (Type: ${type.name}, Bonus: $bonus)';
   }
 
+  /// Переопределить == для сравнения по id
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Item &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  /// Переопределить hashCode для использования в коллекциях
+  @override
+  int get hashCode => id.hashCode;
+
   /// Создать копию предмета
   Item copy() {
     return Item(
+      id: id,
       name: name,
       type: type,
       description: description,

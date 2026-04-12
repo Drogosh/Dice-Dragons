@@ -24,6 +24,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
   late Inventory inventory;
   late Character character;
 
+  // Кэшируемые сортированные предметы с их оригинальными индексами
+  List<MapEntry<Item, int>> _cachedSortedItems = [];
+  Inventory? _lastInventory;
+
   @override
   void initState() {
     super.initState();
@@ -36,89 +40,89 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
 
 
-   void _equipUnequipItem(Item item) {
-     if (item.type == ItemType.weapon) {
-       // Проверяем надеты ли это оружие
-       bool isEquipped = character.equippedWeapons.contains(item);
+    void _equipUnequipItem(Item item) {
+      if (item.type == ItemType.weapon) {
+        // Проверяем надеты ли это оружие (по ID)
+        bool isEquipped = character.equippedWeapons.any((w) => w?.id == item.id);
 
-       if (isEquipped) {
-         // Снимаем оружие
-         final slotIndex = character.equippedWeapons.indexOf(item);
-         character.unequipWeapon(slotIndex);
-         ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(
-             content: Text('${item.name} снято'),
-             duration: const Duration(seconds: 2),
-             behavior: SnackBarBehavior.floating,
-           ),
-         );
-       } else {
-         // Ищем свободный слот
-         final emptySlot = character.equippedWeapons.indexWhere((w) => w == null);
-         if (emptySlot != -1) {
-           character.equipWeapon(emptySlot, item);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('${item.name} надено (слот ${emptySlot + 1})'),
-               duration: const Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
+        if (isEquipped) {
+          // Снимаем оружие
+          final slotIndex = character.equippedWeapons.indexWhere((w) => w?.id == item.id);
+          character.unequipWeapon(slotIndex);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${item.name} снято'),
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          // Ищем свободный слот
+          final emptySlot = character.equippedWeapons.indexWhere((w) => w == null);
+          if (emptySlot != -1) {
+            character.equipWeapon(emptySlot, item);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} надено (слот ${emptySlot + 1})'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Все слоты для оружия заняты'),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            return;
+          }
+        }
+      } else if (item.type == ItemType.armor) {
+        if (item.armorType == ArmorType.shield) {
+          // Щит
+          if (character.equippedShield?.id == item.id) {
+            character.equipShield(null);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} снято'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            character.equipShield(item);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} надено'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
          } else {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text('Все слоты для оружия заняты'),
-               duration: Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
-           return;
-         }
-       }
-     } else if (item.type == ItemType.armor) {
-       if (item.armorType == ArmorType.shield) {
-         // Щит
-         if (character.equippedShield == item) {
-           character.equipShield(null);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('${item.name} снято'),
-               duration: const Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
-         } else {
-           character.equipShield(item);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('${item.name} надено'),
-               duration: const Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
-         }
-       } else {
-         // Броня
-         if (character.equippedArmor == item) {
-           character.equipArmor(null);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('${item.name} снято'),
-               duration: const Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
-         } else {
-           character.equipArmor(item);
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('${item.name} надено (AC: ${character.getCalculatedAC()})'),
-               duration: const Duration(seconds: 2),
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
-         }
-       }
+          // Броня
+          if (character.equippedArmor?.id == item.id) {
+            character.equipArmor(null);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} снято'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            character.equipArmor(item);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${item.name} надено (AC: ${character.getCalculatedAC()})'),
+                duration: const Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        }
      }
 
       setState(() {});
@@ -531,6 +535,31 @@ class _InventoryScreenState extends State<InventoryScreen> {
     );
   }
 
+  /// Получить сортированные предметы с их оригинальными индексами
+  /// O(n log n) - вычисляется один раз
+  List<MapEntry<Item, int>> _getSortedItemsWithIndices() {
+    // Проверяем, нужно ли пересчитывать кэш
+    if (_lastInventory != inventory || _cachedSortedItems.isEmpty) {
+      // Создаем пары (item, originalIndex) и сортируем их один раз
+      final itemsWithIndices = List.generate(
+        inventory.items.length,
+        (index) => MapEntry(inventory.items[index], index),
+      );
+
+      // Сортируем по статусу "надетости" - O(n log n)
+      itemsWithIndices.sort((a, b) {
+        final aEquipped = _isItemEquipped(a.key) ? 0 : 1;
+        final bEquipped = _isItemEquipped(b.key) ? 0 : 1;
+        return aEquipped.compareTo(bEquipped);
+      });
+
+      _cachedSortedItems = itemsWithIndices;
+      _lastInventory = inventory;
+    }
+
+    return _cachedSortedItems;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -591,16 +620,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: inventory.items.length,
                   itemBuilder: (context, index) {
-                    // Сортируем так, чтобы надетые предметы были в верху
-                    final sortedItems = List<Item>.from(inventory.items);
-                    sortedItems.sort((a, b) {
-                      final aEquipped = _isItemEquipped(a) ? 0 : 1;
-                      final bEquipped = _isItemEquipped(b) ? 0 : 1;
-                      return aEquipped.compareTo(bEquipped);
-                    });
+                    // Получаем уже сортированные предметы с индексами - O(1)
+                    final sortedItemsWithIndices = _getSortedItemsWithIndices();
+                    final itemEntry = sortedItemsWithIndices[index];
+                    final item = itemEntry.key;
+                    final actualIndex = itemEntry.value;
 
-                    final item = sortedItems[index];
-                    final actualIndex = inventory.items.indexOf(item);
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       color: _isItemEquipped(item) ? Colors.blue[50] : null,
@@ -799,4 +824,13 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }
   }
 }
+
+
+
+
+
+
+
+
+
 

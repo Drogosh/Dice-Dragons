@@ -46,6 +46,20 @@ class Inventory {
     return items.where((item) => item.type == ItemType.consumable).toList();
   }
 
+  /// Получить предмет по id
+  Item? findItemById(String id) {
+    try {
+      return items.firstWhere((item) => item.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// Проверить наличие предмета по id
+  bool containsId(String id) {
+    return items.any((item) => item.id == id);
+  }
+
   /// Получить предмет по названию
   Item? findItemByName(String name) {
     try {
