@@ -5,11 +5,14 @@ import '../models/inventory.dart';
 import '../models/item.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
+import '../services/session_service.dart';
 import 'character_screen.dart';
 import 'inventory_screen.dart';
 import 'info_screen.dart';
 import 'spells_screen.dart';
 import 'notes_screen.dart';
+import 'sessions_list_screen.dart';
+import 'session_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final Character character;
@@ -31,14 +34,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late Inventory currentInventory;
   late Character currentCharacter;
   final FirestoreService _firestoreService = FirestoreService();
+  late final SessionService _sessionService;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    _sessionService = SessionService();
     currentInventory = widget.inventory;
     currentCharacter = widget.character;
-
+    // ...existing code...
     // Пересчитываем HP на основе телосложения и класса
     debugPrint('📖 MainNavigationScreen.initState()');
     debugPrint('   Персонаж: ${currentCharacter.name}');
@@ -240,6 +245,238 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _showCreateSessionDialog() {
+    final nameController = TextEditingController();
+    final maxPlayersController = TextEditingController();
+    final campaignController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[850],
+        title: const Text(
+          'Создать сессию',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Название сессии',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  filled: true,
+                  fillColor: Colors.grey[700],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: campaignController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Название кампании (опционально)',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  filled: true,
+                  fillColor: Colors.grey[700],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: maxPlayersController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Макс игроков (0 = без лимита)',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  filled: true,
+                  fillColor: Colors.grey[700],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Введите название сессии')),
+                );
+                return;
+              }
+
+              try {
+                final session = await _sessionService.createSession(
+                  name: nameController.text,
+                  campaignName:
+                      campaignController.text.isEmpty ? null : campaignController.text,
+                  maxPlayers: int.tryParse(maxPlayersController.text) ?? 0,
+                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+
+                  // Показать код присоединения
+                  _showJoinCodeDialog(session);
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Создать'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJoinCodeDialog(dynamic session) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[850],
+        title: const Text(
+          'Сессия создана!',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Поделитесь этим кодом с игроками:',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[900],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                session.joinCode,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJoinSessionDialog() {
+    final codeController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[850],
+        title: const Text(
+          'Присоединиться к сессии',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Введите код присоединения:',
+              style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: codeController,
+              style: const TextStyle(color: Colors.white),
+              inputFormatters: [UpperCaseTextFormatter()],
+              decoration: InputDecoration(
+                hintText: 'например: AB12CD',
+                hintStyle: TextStyle(color: Colors.grey[600]),
+                filled: true,
+                fillColor: Colors.grey[700],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              maxLength: 6,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (codeController.text.length != 6) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Введите правильный код (6 символов)')),
+                );
+                return;
+              }
+
+              try {
+                final session = await _sessionService.joinSessionByCode(
+                  codeController.text,
+                );
+
+                if (mounted) {
+                  Navigator.pop(context);
+
+                  // Перейти в сессию
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SessionScreen(session: session),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Присоединиться'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -247,6 +484,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(currentCharacter.name),
         centerTitle: true,
+        actions: [
+          PopupMenuButton(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                child: const Text('Создать сессию'),
+                onTap: () => _showCreateSessionDialog(),
+              ),
+              PopupMenuItem(
+                child: const Text('Присоединиться'),
+                onTap: () => _showJoinSessionDialog(),
+              ),
+            ],
+          ),
+        ],
       ),
        body: PageView(
          controller: _pageController,
@@ -294,8 +545,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 }
 
-
-
-
-
-
+/// Форматер для преобразования текста в прописные буквы
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+    );
+  }
+}
