@@ -1,0 +1,64 @@
+// Firestore Security Rules для D&D Sessions
+// Применить через Firebase Console
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===== SESSIONS =====
+    // Сессии: читать могут только участники, писать - только DM
+    match /sessions/{sessionId} {
+      // Проверить, является ли пользователь участником сессии
+      function isSessionMember(sessionId) {
+        return exists(/databases/$(database)/documents/sessions/$(sessionId)/members/$(request.auth.uid));
+      }
+
+      // Проверить, является ли пользователь DM сессии
+      function isSessionDM(sessionId) {
+        return resource.data.dmId == request.auth.uid;
+      }
+
+      // Прочитать сессию могут только участники
+      allow read: if request.auth != null && isSessionMember(sessionId);
+
+      // Писать (обновить) сессию может только DM
+      allow update: if request.auth != null && isSessionDM(sessionId);
+
+      // Удалить может только DM
+      allow delete: if request.auth != null && isSessionDM(sessionId);
+
+      // Создать сессию может любой аутентифицированный пользователь
+      allow create: if request.auth != null &&
+                      request.resource.data.dmId == request.auth.uid;
+
+      // ===== MEMBERS SUBCOLLECTION =====
+      match /members/{memberId} {
+        // Читать членов могут только участники сессии
+        allow read: if request.auth != null && isSessionMember(sessionId);
+
+        // Добавить члена может DM или сам пользователь (самозапись)
+        allow create: if request.auth != null &&
+                        (isSessionDM(sessionId) || memberId == request.auth.uid);
+
+        // Обновить свои данные может сам пользователь или DM
+        allow update: if request.auth != null &&
+                        (memberId == request.auth.uid || isSessionDM(sessionId));
+
+        // Удалить может DM или сам пользователь
+        allow delete: if request.auth != null &&
+                        (memberId == request.auth.uid || isSessionDM(sessionId));
+      }
+    }
+
+    // ===== LIVE EVENTS (RTDB) =====
+    // Для live событий используется Realtime Database
+    // Путь: sessions/{sessionId}/events
+    // Правила для RTDB находятся в отдельном файле
+
+    // ===== DEFAULT DENY =====
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

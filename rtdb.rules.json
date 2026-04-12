@@ -1,0 +1,59 @@
+{
+  "rules": {
+    "sessions": {
+      "$sessionId": {
+        // Проверить, является ли пользователь участником сессии
+        ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
+        ".write": false,
+
+        // ===== LIVE EVENTS (для реал-тайма) =====
+        "events": {
+          ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
+          ".write": "root.child('members').child($sessionId).child(auth.uid).exists()",
+          "$eventId": {
+            ".validate": "newData.hasChildren(['type', 'timestamp']) &&
+                          newData.child('type').isString()",
+            "type": {
+              ".validate": "newData.isString() &&
+                            (newData.val() == 'roll' ||
+                             newData.val() == 'attack' ||
+                             newData.val() == 'spell' ||
+                             newData.val() == 'message' ||
+                             newData.val() == 'action')"
+            },
+            "timestamp": {
+              ".validate": "newData.isNumber()"
+            },
+            "userId": {
+              ".validate": "newData.isString()"
+            }
+          }
+        },
+
+        // ===== MEMBERS INDEX (для быстрого поиска участников) =====
+        "members": {
+          "$uid": {
+            ".write": "auth.uid == $uid ||
+                       root.child('sessionMetadata').child($sessionId).child('dmId').val() == auth.uid",
+            ".read": "root.child('members').child($sessionId).child(auth.uid).exists()"
+          }
+        }
+      }
+    },
+
+    // ===== SESSION METADATA (для кэша) =====
+    "sessionMetadata": {
+      "$sessionId": {
+        ".read": true,
+        ".write": false
+      }
+    },
+
+    // ===== DEFAULT DENY =====
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+}
+
