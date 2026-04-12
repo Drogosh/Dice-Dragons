@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/character.dart';
 import '../models/inventory.dart';
-import '../models/item.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/session_service.dart';
@@ -11,7 +11,6 @@ import 'inventory_screen.dart';
 import 'info_screen.dart';
 import 'spells_screen.dart';
 import 'notes_screen.dart';
-import 'sessions_list_screen.dart';
 import 'session_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
