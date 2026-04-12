@@ -210,6 +210,7 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
         raceName: _selectedRace!.name,
         className: _selectedClass!.id,
         classNameDisplay: _selectedClass!.name,
+        hitDice: _selectedClass!.hitDice,  // Передаем Hit Dice класса
       );
 
       // Устанавливаем профессиональность выбранных навыков

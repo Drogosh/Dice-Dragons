@@ -47,6 +47,8 @@ class Character {
   String? raceName;  // Имя расы
   String? classNameDisplay; // Имя класса для отображения
 
+  int hitDice = 8; // Hit Dice класса (6, 8, 10, 12) - устанавливается при создании/выборе класса
+
   // Шесть основных характеристик D&D
   int strength;      // Сила
   int dexterity;     // Ловкость
@@ -92,6 +94,7 @@ class Character {
     this.className,
     this.raceName,
     this.classNameDisplay,
+    this.hitDice = 8,  // Значение по умолчанию
   }) {
     _initializeSkills();
     _updateProficiencyBonus();
@@ -281,34 +284,19 @@ class Character {
      return [equippedArmor, equippedShield, ...equippedWeapons];
    }
 
-   /// Пересчитать HP на основе текущего телосложения и класса
-   int recalculateHP() {
-     final conModifier = getConstitutionModifier();
-     
-     // Получаем базовый Hit Dice из имени класса
-     // Это временное решение, в идеале нужно хранить hitDice в Character
-     int hitDice = 8; // По умолчанию 8
-     if (classNameDisplay != null) {
-       if (classNameDisplay!.contains('Палладин') || classNameDisplay!.contains('Fighter')) {
-         hitDice = 10;
-       } else if (classNameDisplay!.contains('Маг') || classNameDisplay!.contains('Wizard')) {
-         hitDice = 6;
-       } else if (classNameDisplay!.contains('Варвар')) {
-         hitDice = 12;
-       }
-       // Остальные классы используют 8
-     }
-     
-     int newHP = hitDice + conModifier;
-     print('🔄 Пересчет HP для персонажа "$name"');
-     print('   Класс: $classNameDisplay');
-     print('   Hit Dice: $hitDice');
-     print('   Constitution: $constitution');
-     print('   Con Modifier: $conModifier');
-     print('   HP: $hitDice + $conModifier = $newHP');
-     
-     return newHP;
-   }
+    /// Пересчитать HP на основе текущего телосложения
+    /// Использует сохраненный hitDice класса, а не парсит classNameDisplay
+    int recalculateHP() {
+      final conModifier = getConstitutionModifier();
+      int newHP = hitDice + conModifier;
+
+      print('🔄 Пересчет HP для персонажа "$name"');
+      print('   Hit Dice: $hitDice');
+      print('   Constitution Modifier: $conModifier');
+      print('   HP: $hitDice + $conModifier = $newHP');
+
+      return newHP;
+    }
 
   // Метод для получения модификатора характеристики (полезен для D&D)
   int getAbilityModifier(int abilityScore) {
@@ -351,51 +339,53 @@ class Character {
          .map((weapon) => weapon != null ? weapon.id : null)
          .toList();
 
-      return {
-        'id': id ?? name,
-        'name': name,
-        'level': level,
-        'hp': hp,
-        'ac': ac,
-        'strength': strength,
-        'dexterity': dexterity,
-        'constitution': constitution,
-        'intelligence': intelligence,
-        'wisdom': wisdom,
-        'charisma': charisma,
-        'strengthSaveProficiency': strengthSaveProficiency,
-        'dexteritySaveProficiency': dexteritySaveProficiency,
-        'constitutionSaveProficiency': constitutionSaveProficiency,
-        'intelligenceSaveProficiency': intelligenceSaveProficiency,
-        'wisdomSaveProficiency': wisdomSaveProficiency,
-        'charismaSaveProficiency': charismaSaveProficiency,
-        'raceId': raceId,
-        'className': className,
-        'raceName': raceName,
-        'classNameDisplay': classNameDisplay,
-        'skillProficiencies': skillProficiencies,
-        'equippedItems': equippedItems,
-      };
+       return {
+         'id': id ?? name,
+         'name': name,
+         'level': level,
+         'hp': hp,
+         'ac': ac,
+         'strength': strength,
+         'dexterity': dexterity,
+         'constitution': constitution,
+         'intelligence': intelligence,
+         'wisdom': wisdom,
+         'charisma': charisma,
+         'strengthSaveProficiency': strengthSaveProficiency,
+         'dexteritySaveProficiency': dexteritySaveProficiency,
+         'constitutionSaveProficiency': constitutionSaveProficiency,
+         'intelligenceSaveProficiency': intelligenceSaveProficiency,
+         'wisdomSaveProficiency': wisdomSaveProficiency,
+         'charismaSaveProficiency': charismaSaveProficiency,
+         'raceId': raceId,
+         'className': className,
+         'raceName': raceName,
+         'classNameDisplay': classNameDisplay,
+         'hitDice': hitDice,  // Сохраняем Hit Dice
+         'skillProficiencies': skillProficiencies,
+         'equippedItems': equippedItems,
+       };
    }
 
-   factory Character.fromMap(Map<String, dynamic> map) {
-     final character = Character(
-       id: map['id'] as String?,
-       name: map['name'] as String,
-       level: map['level'] as int,
-       hp: map['hp'] as int,
-       ac: map['ac'] as int,
-       strength: map['strength'] as int? ?? 10,
-       dexterity: map['dexterity'] as int? ?? 10,
-       constitution: map['constitution'] as int? ?? 10,
-       intelligence: map['intelligence'] as int? ?? 10,
-       wisdom: map['wisdom'] as int? ?? 10,
-       charisma: map['charisma'] as int? ?? 10,
-       raceId: map['raceId'] as String?,
-       className: map['className'] as String?,
-       raceName: map['raceName'] as String?,
-       classNameDisplay: map['classNameDisplay'] as String?,
-     );
+    factory Character.fromMap(Map<String, dynamic> map) {
+      final character = Character(
+        id: map['id'] as String?,
+        name: map['name'] as String,
+        level: map['level'] as int,
+        hp: map['hp'] as int,
+        ac: map['ac'] as int,
+        strength: map['strength'] as int? ?? 10,
+        dexterity: map['dexterity'] as int? ?? 10,
+        constitution: map['constitution'] as int? ?? 10,
+        intelligence: map['intelligence'] as int? ?? 10,
+        wisdom: map['wisdom'] as int? ?? 10,
+        charisma: map['charisma'] as int? ?? 10,
+        raceId: map['raceId'] as String?,
+        className: map['className'] as String?,
+        raceName: map['raceName'] as String?,
+        classNameDisplay: map['classNameDisplay'] as String?,
+        hitDice: map['hitDice'] as int? ?? 8,  // Загружаем Hit Dice
+      );
 
      // Загружаем спасброски
      character.strengthSaveProficiency = map['strengthSaveProficiency'] as bool? ?? false;
@@ -430,7 +420,7 @@ class Character {
      if (map['equippedItems'] is Map) {
        final equipped = map['equippedItems'] as Map<String, dynamic>;
        print('📦 ЗАГРУЖАЮ ID НАДЕТЫХ ПРЕДМЕТОВ из Map');
-       
+
        // Сохраняем ID для восстановления позже (в MainNavigationScreen)
        if (equipped['armorId'] is String) {
          character.equippedArmorId = equipped['armorId'] as String;
@@ -468,6 +458,7 @@ class Character {
     String? className,
     String? raceName,
     String? classNameDisplay,
+    int? hitDice,
   }) {
     return Character(
       id: id ?? this.id,
@@ -485,6 +476,7 @@ class Character {
       className: className ?? this.className,
       raceName: raceName ?? this.raceName,
       classNameDisplay: classNameDisplay ?? this.classNameDisplay,
+      hitDice: hitDice ?? this.hitDice,
     );
   }
 
