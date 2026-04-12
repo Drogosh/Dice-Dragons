@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
+import '../services/presence_service.dart';
 
 class SessionScreen extends StatefulWidget {
   final Session session;
@@ -16,13 +17,29 @@ class SessionScreen extends StatefulWidget {
 
 class _SessionScreenState extends State<SessionScreen> {
   late final SessionService _sessionService;
+  late final PresenceService _presenceService;
   late Session _currentSession;
 
   @override
   void initState() {
     super.initState();
     _sessionService = SessionService();
+    _presenceService = PresenceService();
     _currentSession = widget.session;
+
+    // Войти в сессию (установить online=true)
+    _presenceService.enterSession(_currentSession.id).then((_) {
+      debugPrint('✅ Presence set to online');
+    }).catchError((e) {
+      debugPrint('❌ Error setting presence: $e');
+    });
+  }
+
+  @override
+  void dispose() {
+    // Покинуть сессию при выходе со экрана
+    _presenceService.leaveSession(_currentSession.id);
+    super.dispose();
   }
 
   @override
@@ -237,53 +254,125 @@ class _SessionScreenState extends State<SessionScreen> {
               style: TextStyle(color: Colors.grey[500]),
             )
           else
-            ...players.map((player) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[700],
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.person, color: Colors.blue[300]),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+            // Слушаем изменения presence в реальном времени
+            StreamBuilder<List<PresenceStatus>>(
+              stream: _presenceService.watchPresence(_currentSession.id),
+              builder: (context, snapshot) {
+                // Создаём map presence для быстрого поиска
+                final presenceMap = <String, PresenceStatus>{};
+                if (snapshot.hasData) {
+                  for (final presence in snapshot.data!) {
+                    presenceMap[presence.uid] = presence;
+                  }
+                }
+
+                return Column(
+                  children: players.map((player) {
+                    final presence = presenceMap[player.uid];
+                    final isOnline = presence?.online ?? false;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[700],
+                          border: Border.all(
+                            color: isOnline ? Colors.green[400]! : Colors.transparent,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
                           children: [
-                            Text(
-                              player.displayName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                            // Online статус индикатор
+                            Container(
+                              width: 12,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color: isOnline ? Colors.green : Colors.grey,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                            if (player.characterId != null)
-                              Text(
-                                'Персонаж: ${player.characterId}',
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 12,
-                                ),
+                            const SizedBox(width: 12),
+                            Icon(Icons.person, color: Colors.blue[300]),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        player.displayName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      // Online/Offline статус текст
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: isOnline
+                                              ? Colors.green[900]
+                                              : Colors.grey[700],
+                                          borderRadius: BorderRadius.circular(3),
+                                        ),
+                                        child: Text(
+                                          isOnline ? 'Онлайн' : 'Офлайн',
+                                          style: TextStyle(
+                                            color: isOnline
+                                                ? Colors.green[300]
+                                                : Colors.grey[400],
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  if (player.characterId != null)
+                                    Text(
+                                      'Персонаж: ${player.characterId}',
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  // Показываем время последнего видения
+                                  if (presence != null)
+                                    Text(
+                                      isOnline
+                                          ? 'Онлайн'
+                                          : 'Вышел: ${_presenceService.getLastSeenText(presence.lastSeen)}',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
                               ),
+                            ),
+                            Text(
+                              _formatDateTime(player.joinedAt),
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      Text(
-                        _formatDateTime(player.joinedAt),
-                        style: TextStyle(
-                          color: Colors.grey[500],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -485,4 +574,6 @@ class _SessionScreenState extends State<SessionScreen> {
     }
   }
 }
+
+
 
