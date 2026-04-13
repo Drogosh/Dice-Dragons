@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'dart:math;
 import '../models/session.dart';
 import '../models/request.dart';
 import '../models/character.dart';
-import 'dart:math';
 
 class SessionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -440,30 +441,74 @@ class SessionService {
     }
   }
 
-  /// Слушать изменения сессии в реальном времени (для live events)
+  /// Слушать изменения сессии + членов в реальном времени (truly real-time)
   Stream<Session?> watchSession(String sessionId) {
-    return _firestore
+    // Два независимых stream-а
+    final sessionDocStream = _firestore
         .collection(_sessionsCollection)
         .doc(sessionId)
-        .snapshots()
-        .asyncMap((sessionDoc) async {
-      if (!sessionDoc.exists) return null;
+        .snapshots();
 
-      // Загрузить членов
-      final membersQuery = await _firestore
-          .collection(_sessionsCollection)
-          .doc(sessionId)
-          .collection(_membersSubcollection)
-          .get();
+    final membersStream = _firestore
+        .collection(_sessionsCollection)
+        .doc(sessionId)
+        .collection(_membersSubcollection)
+        .snapshots();
 
-      final members = <String, SessionMember>{};
-      for (final memberDoc in membersQuery.docs) {
-        final member = SessionMember.fromMap(memberDoc.id, memberDoc.data());
-        members[memberDoc.id] = member;
+    // Комбинируем stream-ы используя StreamController
+    late StreamController<Session?> controller;
+    Session? _lastSession;
+    Map<String, SessionMember>? _lastMembers;
+
+    void _emitCombined() {
+      if (_lastSession != null && _lastMembers != null) {
+        final combined = _lastSession!.copyWith(members: _lastMembers!);
+        controller.add(combined);
       }
+    }
 
-      return Session.fromFirestore(sessionDoc, members: members);
-    });
+    controller = StreamController<Session?>(
+      onListen: () {
+        // Слушаем session doc
+        final sessionSub = sessionDocStream.listen((sessionDoc) {
+          if (!sessionDoc.exists) {
+            _lastSession = null;
+            controller.add(null);
+            return;
+          }
+
+          _lastSession = Session.fromFirestore(sessionDoc, members: _lastMembers ?? {});
+          debugPrint('📄 Session doc updated for $sessionId');
+          _emitCombined();
+        }, onError: (e) {
+          debugPrint('❌ Error watching session doc: $e');
+          controller.addError(e);
+        });
+
+        // Слушаем members subcollection
+        final membersSub = membersStream.listen((membersQuery) {
+          final members = <String, SessionMember>{};
+          for (final memberDoc in membersQuery.docs) {
+            final member = SessionMember.fromMap(memberDoc.id, memberDoc.data());
+            members[memberDoc.id] = member;
+          }
+
+          _lastMembers = members;
+          debugPrint('👥 Members updated for $sessionId: ${members.length} members');
+          _emitCombined();
+        }, onError: (e) {
+          debugPrint('❌ Error watching members: $e');
+          controller.addError(e);
+        });
+
+        controller.onCancel = () {
+          sessionSub.cancel();
+          membersSub.cancel();
+        };
+      },
+    );
+
+    return controller.stream;
   }
 
    /// Слушать членов сессии в реальном времени

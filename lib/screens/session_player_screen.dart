@@ -105,6 +105,22 @@ class RequestCard extends StatefulWidget {
 }
 
 class _RequestCardState extends State<RequestCard> {
+  late Future<bool> _hasResponded;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkResponse();
+  }
+
+  void _checkResponse() {
+    _hasResponded = widget.responsesService.hasPlayerResponded(
+      widget.sessionId,
+      widget.request.id ?? '',
+      widget.playerId,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -151,11 +167,42 @@ class _RequestCardState extends State<RequestCard> {
               ],
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: () {
-                _showResponseDialog(context);
+            FutureBuilder<bool>(
+              future: _hasResponded,
+              builder: (context, snapshot) {
+                final responded = snapshot.data ?? false;
+                
+                if (responded) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green.shade700, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Ответ отправлен',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                
+                return ElevatedButton(
+                  onPressed: () {
+                    _showResponseDialog(context);
+                  },
+                  child: const Text('Ответить'),
+                );
               },
-              child: const Text('Ответить'),
             ),
           ],
         ),
@@ -356,6 +403,7 @@ class _RequestCardState extends State<RequestCard> {
     }
   }
 }
+
 
 
 

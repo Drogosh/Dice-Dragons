@@ -151,35 +151,59 @@ class RealtimeRequestsService {
     }
   }
 
-  /// Парсер запроса из RTDB
+  /// Парсер запроса из RTDB (типобезопасный)
   Request _parseRequest(String id, Map requestData) {
-    return Request(
-      id: id,
-      sessionId: requestData['sessionId'] as String? ?? '',
-      dmId: requestData['dmId'] as String? ?? '',
-      characterId: '',
-      characterName: '',
-      type: RequestType.values.firstWhere(
-        (t) => t.name == requestData['type'],
-        orElse: () => RequestType.check,
-      ),
-      formula: requestData['formula'] as String? ?? '',
-      modifier: requestData['modifier'] as int? ?? 0,
-      targetAc: requestData['targetAc'] as int?,
-      note: requestData['note'] as String?,
-      abilityType: requestData['abilityType'] != null
-          ? AbilityType.values.firstWhere(
-              (a) => a.name == requestData['abilityType'],
-              orElse: () => AbilityType.strength,
-            )
-          : null,
-      createdAt: requestData['createdAt'] as String?,
-      status: requestData['status'] as String? ?? 'open',
-      audience: requestData['audience'] as String? ?? 'all',
-      targetUids: List<String>.from(requestData['targetUids'] as List<dynamic>? ?? []),
-    );
+    try {
+      // Безопасно преобразуем в Map<String, dynamic>
+      final data = Map<String, dynamic>.from(requestData);
+
+      // Parse targetUids (может быть list или map)
+      List<String> targetUids = [];
+      if (data['targetUids'] != null) {
+        try {
+          if (data['targetUids'] is List) {
+            targetUids = List<String>.from(data['targetUids'] as List<dynamic>);
+          } else if (data['targetUids'] is Map) {
+            // Если это map от Firebase (map-of-true pattern)
+            targetUids = (data['targetUids'] as Map).keys.cast<String>().toList();
+          }
+        } catch (e) {
+          debugPrint('⚠️  Error parsing targetUids for $id: $e');
+        }
+      }
+
+      return Request(
+        id: id,
+        sessionId: (data['sessionId'] as String?) ?? '',
+        dmId: (data['dmId'] as String?) ?? '',
+        characterId: (data['characterId'] as String?) ?? '',
+        characterName: (data['characterName'] as String?) ?? '',
+        type: RequestType.values.firstWhere(
+          (t) => t.name == data['type'],
+          orElse: () => RequestType.check,
+        ),
+        formula: (data['formula'] as String?) ?? '',
+        modifier: (data['modifier'] as int?) ?? 0,
+        targetAc: data['targetAc'] as int?,
+        note: data['note'] as String?,
+        abilityType: data['abilityType'] != null
+            ? AbilityType.values.firstWhere(
+                (a) => a.name == data['abilityType'] as String,
+                orElse: () => AbilityType.strength,
+              )
+            : null,
+        createdAt: (data['createdAt'] as String?),
+        status: (data['status'] as String?) ?? 'open',
+        audience: (data['audience'] as String?) ?? 'all',
+        targetUids: targetUids,
+      );
+    } catch (e) {
+      debugPrint('❌ Critical error parsing request $id: $e, data: $requestData');
+      rethrow;
+    }
   }
 }
+
 
 
 
