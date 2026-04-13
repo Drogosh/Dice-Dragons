@@ -489,6 +489,8 @@ class SessionService {
      int? targetAc,
      String? note,
      AbilityType? abilityType,
+     String audience = 'all',
+     List<String> targetUids = const [],
    }) async {
      try {
        final user = _auth.currentUser;
@@ -506,6 +508,12 @@ class SessionService {
          abilityType: abilityType,
        );
 
+       // Добавляем audience и targetUids
+       final requestWithAudience = request.copyWith(
+         audience: audience,
+         targetUids: targetUids,
+       );
+
        // Сохраняем в Firestore
        final docRef = _firestore
            .collection(_sessionsCollection)
@@ -513,7 +521,7 @@ class SessionService {
            .collection(_requestsSubcollection)
            .doc();
 
-       final requestWithId = request.copyWith(id: docRef.id);
+       final requestWithId = requestWithAudience.copyWith(id: docRef.id);
 
        await docRef.set(requestWithId.toMap());
 

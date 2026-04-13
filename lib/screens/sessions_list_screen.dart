@@ -184,6 +184,41 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Закрыть'),
           ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToDMScreen(session);
+            },
+            child: const Text('К сессии (DM)'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToDMScreen(Session session) {
+    // TODO: Реализовать переход на экран DM
+    // Нужен персонаж DM (если есть) или пока null
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(
+    //     builder: (context) => SessionDMScreen(
+    //       session: session,
+    //       sessionService: _sessionService,
+    //     ),
+    //   ),
+    // );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Переход на экран DM (скоро будет)')),
+    );
+  }
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
         ],
       ),
     );

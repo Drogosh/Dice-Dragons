@@ -31,6 +31,8 @@ class Request {
   final AbilityType? abilityType; // Для проверок и спасбросков
   final String? createdAt;
   final String status;           // "open" или "closed"
+  final String audience;         // "all" или "subset"
+  final List<String> targetUids; // Целевые игроки (если subset)
 
   Request({
     this.id,
@@ -46,6 +48,8 @@ class Request {
     this.abilityType,
     this.createdAt,
     this.status = 'open',
+    this.audience = 'all',
+    this.targetUids = const [],
   });
 
   /// Создать Request с автоматическим расчетом модификатора
@@ -176,6 +180,8 @@ class Request {
       'abilityType': abilityType?.toString().split('.').last,
       'createdAt': createdAt,
       'status': status,
+      'audience': audience,
+      'targetUids': targetUids,
     };
   }
 
@@ -231,6 +237,8 @@ class Request {
       abilityType: parseAbilityType(map['abilityType'] as String?),
       createdAt: map['createdAt'] as String?,
       status: map['status'] as String? ?? 'open',
+      audience: map['audience'] as String? ?? 'all',
+      targetUids: List<String>.from(map['targetUids'] as List<dynamic>? ?? []),
     );
   }
 
@@ -248,6 +256,8 @@ class Request {
     AbilityType? abilityType,
     String? createdAt,
     String? status,
+    String? audience,
+    List<String>? targetUids,
   }) {
     return Request(
       id: id ?? this.id,
@@ -263,9 +273,15 @@ class Request {
       abilityType: abilityType ?? this.abilityType,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
+      audience: audience ?? this.audience,
+      targetUids: targetUids ?? this.targetUids,
     );
   }
 }
+
+
+
+
 
 
 
