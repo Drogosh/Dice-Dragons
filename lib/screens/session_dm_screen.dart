@@ -28,25 +28,57 @@ class SessionDMScreen extends StatefulWidget {
 class _SessionDMScreenState extends State<SessionDMScreen> {
   bool showRequestForm = false;
   late RequestType selectedType;
+  String selectedDmMode = 'normal';
+  bool _rtdbInitialized = false;
+  late Future<void> _initFuture;
 
   final formulaController = TextEditingController();
   final targetAcController = TextEditingController();
-  final noteController = TextEditingController();
+  // Характеристика, выбранная ДМ — модификатор этой характеристики будет применён к броску
+  AbilityType? selectedDmAbility;
   Set<String> selectedPlayerUids = {};
   String audience = 'all';
 
   @override
   void initState() {
     super.initState();
+    debugPrint('🎯 SessionDMScreen.initState STARTED');
     selectedType = RequestType.check;
     formulaController.text = '1d20';
+    selectedDmAbility = null;
+
+    // Инициализировать сессию в RTDB ВО ВРЕМЯ initState
+    debugPrint('🎯 SessionDMScreen: создаю Future инициализации');
+    _initFuture = _initializeRTDBSession();
+    debugPrint('🎯 SessionDMScreen: Future создан');
+  }
+
+  /// Инициализировать сессию в RTDB (запись dmId для авторизации)
+  Future<void> _initializeRTDBSession() async {
+    try {
+      debugPrint('🔧 SessionDMScreen._initializeRTDBSession START');
+      await widget.requestsService.initializeSessionInRTDB(
+        sessionId: widget.session.id,
+        dmId: widget.session.dmId,
+      );
+      debugPrint('✅ SessionDMScreen._initializeRTDBSession SUCCESS');
+      setState(() {
+        _rtdbInitialized = true;
+      });
+      debugPrint('✅ SessionDMScreen: _rtdbInitialized=true в setState');
+    } catch (e) {
+      debugPrint('⚠️  SessionDMScreen._initializeRTDBSession ERROR: $e');
+      setState(() {
+        _rtdbInitialized = true; // Continue anyway
+      });
+    }
   }
 
   @override
   void dispose() {
     formulaController.dispose();
     targetAcController.dispose();
-    noteController.dispose();
+    // selectedDmAbility не требует диспоусинга
     super.dispose();
   }
 
@@ -96,6 +128,19 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
       return;
     }
 
+    // Убедиться что RTDB инициализирована
+    if (!_rtdbInitialized) {
+      debugPrint('⏳ Ожидание инициализации RTDB...');
+      await Future.delayed(const Duration(seconds: 1));
+      if (!_rtdbInitialized) {
+        debugPrint('⚠️  RTDB не инициализирована, попробуйте еще раз');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('⚠️  RTDB инициализируется, попробуйте еще раз')),
+        );
+        return;
+      }
+    }
+
     if (widget.dmCharacter == null) {
       debugPrint('⚠️  dmCharacter is null, allowing request creation without character');
     }
@@ -103,7 +148,7 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
     try {
       debugPrint('🎲 _createRequest: type=$selectedType formula=${formulaController.text}');
 
-      final request = Request(
+        final request = Request(
         id: null,
         sessionId: widget.session.id,
         dmId: widget.session.dmId,
@@ -111,9 +156,12 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
         characterName: widget.dmCharacter?.name ?? 'DM',
         type: selectedType!,
         formula: formulaController.text,
-        modifier: widget.dmCharacter?.getStrengthModifier() ?? 0,
+        // DM selects an ability (dmAbilityType) instead of a raw numeric modifier.
+        modifier: 0,
+        dmAbilityType: selectedDmAbility,
         targetAc: int.tryParse(targetAcController.text),
-        note: noteController.text.isNotEmpty ? noteController.text : null,
+        note: null,
+        dmMode: selectedDmMode == 'normal' ? null : selectedDmMode,
         status: 'open',
         audience: audience,
         targetUids: selectedPlayerUids.toList(),
@@ -166,10 +214,11 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
       showRequestForm = false;
       formulaController.text = '1d20';
       targetAcController.clear();
-      noteController.clear();
+      selectedDmAbility = null;
       selectedPlayerUids.clear();
       audience = 'all';
       selectedType = RequestType.check;
+      selectedDmMode = 'normal';
     });
   }
 
@@ -258,17 +307,26 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Заметка
-                      const Text('Заметка:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextField(
-                        controller: noteController,
-                        maxLines: 2,
-                        decoration: const InputDecoration(
-                          hintText: 'Описание запроса',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                                                      // Модификатор — характеристика, выбранная ДМ
+                                                      const Text('Модификатор — характеристика (выбирает ДМ):', style: TextStyle(fontWeight: FontWeight.bold)),
+                                                      const SizedBox(height: 8),
+                                                      Wrap(
+                                                        spacing: 8,
+                                                        children: AbilityType.values.map((a) {
+                                                          final label = _getAbilityLabel(a);
+                                                          final selected = selectedDmAbility == a;
+                                                          return ChoiceChip(
+                                                            label: Text(label),
+                                                            selected: selected,
+                                                            onSelected: (sel) {
+                                                              setState(() {
+                                                                selectedDmAbility = sel ? a : null;
+                                                              });
+                                                            },
+                                                          );
+                                                        }).toList(),
+                                                      ),
+                                                      const SizedBox(height: 16),
 
                       // Аудитория
                       const Text('Аудитория:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -296,6 +354,29 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
                             },
                           ),
                         ],
+                      ),
+
+                      const SizedBox(height: 12),
+                      // Режим броска, выбирает DM
+                      const Text('Режим броска (выбирает ДМ):', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      CheckboxListTile(
+                        title: const Text('✓ Преимущество'),
+                        value: selectedDmMode == 'advantage',
+                        onChanged: (value) {
+                          setState(() {
+                            selectedDmMode = value ?? false ? 'advantage' : 'normal';
+                          });
+                        },
+                      ),
+                      CheckboxListTile(
+                        title: const Text('✗ Помеха'),
+                        value: selectedDmMode == 'disadvantage',
+                        onChanged: (value) {
+                          setState(() {
+                            selectedDmMode = value ?? false ? 'disadvantage' : 'normal';
+                          });
+                        },
                       ),
 
                       // Выбор игроков
@@ -405,9 +486,10 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
                           fontSize: 16,
                         ),
                       ),
-                      if (request.note != null)
+                      // Если запрос направлен конкретным игрокам - покажем их имена
+                      if (request.audience == 'subset' && request.targetUids.isNotEmpty)
                         Text(
-                          request.note!,
+                          'Кому: ${request.targetUids.map((uid) => widget.session.members[uid]?.displayName ?? uid).join(', ')}',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -466,7 +548,10 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              response.displayName,
+                              // Показываем имя персонажа, если оно есть, иначе показываем displayName
+                              (response.characterName != null && response.characterName!.isNotEmpty)
+                                  ? response.characterName!
+                                  : response.displayName,
                               style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
                             Text(

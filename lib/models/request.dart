@@ -29,7 +29,9 @@ class Request {
   final int? targetAc;           // Для атак
   final String? note;            // Описание (например "по гоблину", "проверка Атлетики")
   final AbilityType? abilityType; // Для проверок и спасбросков
+  final AbilityType? dmAbilityType; // Характеристика, выбранная ДМ для применения к броску
   final String? createdAt;
+  final String? dmMode; // 'normal' | 'advantage' | 'disadvantage' - chosen by DM; overrides player choice if set
   final String status;           // "open" или "closed"
   final String audience;         // "all" или "subset"
   final List<String> targetUids; // Целевые игроки (если subset)
@@ -46,7 +48,9 @@ class Request {
     this.targetAc,
     this.note,
     this.abilityType,
+    this.dmAbilityType,
     this.createdAt,
+    this.dmMode,
     this.status = 'open',
     this.audience = 'all',
     this.targetUids = const [],
@@ -112,7 +116,9 @@ class Request {
       targetAc: targetAc,
       note: note,
       abilityType: abilityType,
+      dmAbilityType: null,
       createdAt: DateTime.now().toIso8601String(),
+      dmMode: null,
       status: 'open',
     );
   }
@@ -178,7 +184,9 @@ class Request {
       'targetAc': targetAc,
       'note': note,
       'abilityType': abilityType?.toString().split('.').last,
+      'dmAbilityType': dmAbilityType?.toString().split('.').last,
       'createdAt': createdAt,
+      'dmMode': dmMode,
       'status': status,
       'audience': audience,
       'targetUids': targetUids,
@@ -235,7 +243,9 @@ class Request {
       targetAc: map['targetAc'] as int?,
       note: map['note'] as String?,
       abilityType: parseAbilityType(map['abilityType'] as String?),
+      dmAbilityType: parseAbilityType(map['dmAbilityType'] as String?),
       createdAt: map['createdAt'] as String?,
+      dmMode: map['dmMode'] as String?,
       status: map['status'] as String? ?? 'open',
       audience: map['audience'] as String? ?? 'all',
       targetUids: List<String>.from(map['targetUids'] as List<dynamic>? ?? []),
@@ -254,10 +264,12 @@ class Request {
     int? targetAc,
     String? note,
     AbilityType? abilityType,
+    AbilityType? dmAbilityType,
     String? createdAt,
     String? status,
     String? audience,
     List<String>? targetUids,
+    String? dmMode,
   }) {
     return Request(
       id: id ?? this.id,
@@ -271,10 +283,12 @@ class Request {
       targetAc: targetAc ?? this.targetAc,
       note: note ?? this.note,
       abilityType: abilityType ?? this.abilityType,
+      dmAbilityType: dmAbilityType ?? this.dmAbilityType,
       createdAt: createdAt ?? this.createdAt,
       status: status ?? this.status,
       audience: audience ?? this.audience,
       targetUids: targetUids ?? this.targetUids,
+      dmMode: dmMode ?? this.dmMode,
     );
   }
 }

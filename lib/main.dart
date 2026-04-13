@@ -8,11 +8,20 @@ import 'firebase_options.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Инициализация Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
+  // Инициализация Firebase (защищаемся от повторной инициализации)
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } else {
+      // Firebase уже инициализирован нативной конфигурацией
+      debugPrint('⚠️ Firebase уже инициализирован - пропускаем повторную инициализацию');
+    }
+  } catch (e) {
+    debugPrint('⚠️ Ошибка инициализации Firebase: $e');
+  }
+
   // Инициализация Hive
   await Hive.initFlutter();
 

@@ -580,8 +580,18 @@ class FirebaseRealtimeDatabaseService {
     );
   }
 
-  /// Парсер запроса
+   /// Парсер запроса
   Request _parseRequest(Map requestData) {
+    // Handle createdAt: either as number (milliseconds) or as string
+    String? createdAtStr;
+    final createdAtValue = requestData['createdAt'];
+    if (createdAtValue is int) {
+      // Convert milliseconds timestamp to ISO 8601 string
+      createdAtStr = DateTime.fromMillisecondsSinceEpoch(createdAtValue).toIso8601String();
+    } else if (createdAtValue is String) {
+      createdAtStr = createdAtValue;
+    }
+
     return Request(
       id: requestData['id'] as String?,
       sessionId: requestData['sessionId'] as String? ?? '',
@@ -602,7 +612,7 @@ class FirebaseRealtimeDatabaseService {
               orElse: () => AbilityType.strength,
             )
           : null,
-      createdAt: requestData['createdAt'] as String?,
+      createdAt: createdAtStr,
       status: requestData['status'] as String? ?? 'open',
       audience: requestData['audience'] as String? ?? 'all',
       targetUids: List<String>.from(requestData['targetUids'] as List<dynamic>? ?? []),

@@ -9,6 +9,33 @@ class RealtimeResponsesService {
   static const String _liveSessionsPath = 'liveSessions';
   static const String _responsesPath = 'responses';
 
+  /// Инициализировать сессию в RTDB (запись dmId для авторизации)
+  /// Должна вызваться один раз при входе игрока в сессию
+  Future<void> initializeSessionInRTDB({
+    required String sessionId,
+    required String dmId,
+  }) async {
+    try {
+      debugPrint('🔧 RealtimeResponsesService.initializeSessionInRTDB: sessionId=$sessionId');
+
+      final sessionRef = _database.ref('$_liveSessionsPath/$sessionId');
+
+      // Просто записываем dmId (если уже существует, перезапишется)
+      // Не проверяем существование чтобы избежать зависания на .get()
+      await sessionRef.child('dmId').set(dmId).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⚠️  RealtimeResponsesService.initializeSessionInRTDB timeout - продолжаем');
+        },
+      );
+
+      debugPrint('✅ dmId initialized in RTDB for session $sessionId');
+    } catch (e, stackTrace) {
+      debugPrint('⚠️  initializeSessionInRTDB warning: $e\nStackTrace: $stackTrace');
+      // Не выбрасываем исключение - это некритично
+    }
+  }
+
   /// Отправить ответ на запрос
   Future<void> submitResponse({
     required String sessionId,
@@ -37,7 +64,7 @@ class RealtimeResponsesService {
         'mode': mode,
         'modifier': modifier,
         'total': total,
-        'createdAt': DateTime.now().toIso8601String(),
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
         'success': success,
       };
 
@@ -167,6 +194,5 @@ class RealtimeResponsesService {
     }
   }
 }
-
 
 

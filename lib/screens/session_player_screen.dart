@@ -29,16 +29,43 @@ class SessionPlayerScreen extends StatefulWidget {
 
 class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
   late Stream<List<Request>> _requestsStream;
+  bool _rtdbInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    debugPrint('🎯 SessionPlayerScreen.initState STARTED');
     final playersCount = widget.session.getPlayers().length;
     _requestsStream = widget.requestsService.watchPlayerRequests(
       widget.session.id,
       widget.currentPlayerId,
       playersCount,
     );
+
+    // Инициализировать сессию в RTDB при входе игрока
+    debugPrint('🎯 SessionPlayerScreen: вызываю _initializeRTDBSession()');
+    _initializeRTDBSession();
+    debugPrint('🎯 SessionPlayerScreen: _initializeRTDBSession() вызвана');
+  }
+
+  /// Инициализировать сессию в RTDB (запись dmId для авторизации)
+  Future<void> _initializeRTDBSession() async {
+    try {
+      debugPrint('🔧 SessionPlayerScreen._initializeRTDBSession START');
+      await widget.responsesService.initializeSessionInRTDB(
+        sessionId: widget.session.id,
+        dmId: widget.session.dmId,
+      );
+      setState(() {
+        _rtdbInitialized = true;
+      });
+      debugPrint('✅ SessionPlayerScreen._initializeRTDBSession COMPLETE - _rtdbInitialized=true');
+    } catch (e) {
+      debugPrint('⚠️  SessionPlayerScreen._initializeRTDBSession ERROR: $e');
+      setState(() {
+        _rtdbInitialized = true; // Continue anyway
+      });
+    }
   }
 
   @override
@@ -72,6 +99,7 @@ class _SessionPlayerScreenState extends State<SessionPlayerScreen> {
                 playerCharacter: widget.playerCharacter,
                 playerDisplayName: widget.playerDisplayName,
                 responsesService: widget.responsesService,
+                rtdbInitialized: _rtdbInitialized,
               );
             },
           );
@@ -89,6 +117,7 @@ class RequestCard extends StatefulWidget {
   final Character? playerCharacter;
   final String playerDisplayName;
   final RealtimeResponsesService responsesService;
+  final bool rtdbInitialized;
 
   const RequestCard({
     super.key,
@@ -98,6 +127,7 @@ class RequestCard extends StatefulWidget {
     this.playerCharacter,
     required this.playerDisplayName,
     required this.responsesService,
+    required this.rtdbInitialized,
   });
 
   @override
@@ -133,7 +163,7 @@ class _RequestCardState extends State<RequestCard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
+                    Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -143,14 +173,13 @@ class _RequestCardState extends State<RequestCard> {
                         fontSize: 14,
                       ),
                     ),
-                    if (widget.request.note != null)
-                      Text(
-                        widget.request.note!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
+                        // Показываем характеристику, выбранную ДМ (если есть)
+                        if (widget.request.dmAbilityType != null)
+                          Text(
+                            'DM модификатор: ${_abilityLabel(widget.request.dmAbilityType)}',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                          ),
+                    // Заметка убрана — DM может задавать модификатор вместо заметки
                   ],
                 ),
                 Container(
@@ -210,9 +239,27 @@ class _RequestCardState extends State<RequestCard> {
     );
   }
 
+  String _abilityLabel(AbilityType? ability) {
+    if (ability == null) return '—';
+    switch (ability) {
+      case AbilityType.strength:
+        return 'STR';
+      case AbilityType.dexterity:
+        return 'DEX';
+      case AbilityType.constitution:
+        return 'CON';
+      case AbilityType.intelligence:
+        return 'INT';
+      case AbilityType.wisdom:
+        return 'WIS';
+      case AbilityType.charisma:
+        return 'CHA';
+    }
+  }
+
   void _showResponseDialog(BuildContext context) {
     final rollController = TextEditingController();
-    String selectedMode = 'normal';
+    String selectedMode = widget.request.dmMode ?? 'normal';
 
     showDialog(
       context: context,
@@ -237,27 +284,40 @@ class _RequestCardState extends State<RequestCard> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text('Режим броска:'),
                     const SizedBox(height: 8),
-                    // Две CheckboxListTile - взаимоисключающие
-                    CheckboxListTile(
-                      title: const Text('✓ Преимущество'),
-                      value: selectedMode == 'advantage',
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMode = value ?? false ? 'advantage' : 'normal';
-                        });
-                      },
-                    ),
-                    CheckboxListTile(
-                      title: const Text('✗ Помеха'),
-                      value: selectedMode == 'disadvantage',
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMode = value ?? false ? 'disadvantage' : 'normal';
-                        });
-                      },
-                    ),
+                    // Показываем режим, выбранный ДМ (если есть). Игрок сам не выбирает режим.
+                    if (widget.request.dmMode == 'advantage')
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_upward, color: Colors.green.shade700, size: 16),
+                            const SizedBox(width: 8),
+                            Text('Преимущество (режим ДМ)', style: TextStyle(color: Colors.green.shade700)),
+                          ],
+                        ),
+                      )
+                    else if (widget.request.dmMode == 'disadvantage')
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.arrow_downward, color: Colors.red.shade700, size: 16),
+                            const SizedBox(width: 8),
+                            Text('Помеха (режим ДМ)', style: TextStyle(color: Colors.red.shade700)),
+                          ],
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
                   ],
                 ),
               ),
@@ -294,6 +354,21 @@ class _RequestCardState extends State<RequestCard> {
       return;
     }
 
+    // Убедиться что RTDB инициализирована
+    if (!widget.rtdbInitialized) {
+      debugPrint('⏳ Ожидание инициализации RTDB...');
+      await Future.delayed(const Duration(seconds: 1));
+      if (!widget.rtdbInitialized) {
+        debugPrint('⚠️  RTDB не инициализирована, попробуйте еще раз');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('⚠️  RTDB инициализируется, попробуйте еще раз')),
+          );
+        }
+        return;
+      }
+    }
+
     if (widget.playerCharacter == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -304,14 +379,40 @@ class _RequestCardState extends State<RequestCard> {
     }
 
     try {
-      // Вычислить модификатор на основе типа запроса и способности
-      final modifier = _calculateModifier(
+      // Вычислить модификатор игрока на основе типа запроса и способности
+      final playerModifier = _calculateModifier(
         widget.request.type,
         widget.request.abilityType,
         widget.playerCharacter!,
       );
 
-      final total = baseRoll + modifier;
+      // DM может задать характеристику, модификатор которой будет применён к всем броскам
+      int dmModifier = 0;
+      if (widget.request.dmAbilityType != null) {
+        switch (widget.request.dmAbilityType!) {
+          case AbilityType.strength:
+            dmModifier = widget.playerCharacter!.getStrengthModifier();
+            break;
+          case AbilityType.dexterity:
+            dmModifier = widget.playerCharacter!.getDexterityModifier();
+            break;
+          case AbilityType.constitution:
+            dmModifier = widget.playerCharacter!.getConstitutionModifier();
+            break;
+          case AbilityType.intelligence:
+            dmModifier = widget.playerCharacter!.getIntelligenceModifier();
+            break;
+          case AbilityType.wisdom:
+            dmModifier = widget.playerCharacter!.getWisdomModifier();
+            break;
+          case AbilityType.charisma:
+            dmModifier = widget.playerCharacter!.getCharismaModifier();
+            break;
+        }
+      }
+
+      final combinedModifier = playerModifier + dmModifier;
+      final total = baseRoll + combinedModifier;
 
       // Проверить HIT/MISS для атак
       final success = widget.request.targetAc != null ? total >= widget.request.targetAc! : null;
@@ -325,7 +426,7 @@ class _RequestCardState extends State<RequestCard> {
         characterName: widget.playerCharacter!.name,
         baseRoll: baseRoll,
         mode: mode,
-        modifier: modifier,
+        modifier: combinedModifier,
         total: total,
         success: success,
       );

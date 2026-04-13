@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,33 @@ class RealtimeRequestsService {
 
   static const String _liveSessionsPath = 'liveSessions';
   static const String _requestsPath = 'requests';
+
+  /// Инициализировать сессию в RTDB (запись dmId для авторизации)
+  /// Должна вызваться один раз при входе DM в сессию
+  Future<void> initializeSessionInRTDB({
+    required String sessionId,
+    required String dmId,
+  }) async {
+    try {
+      debugPrint('🔧 initializeSessionInRTDB: sessionId=$sessionId dmId=$dmId');
+
+      final sessionRef = _database.ref('$_liveSessionsPath/$sessionId');
+
+      // Просто записываем dmId (если уже существует, перезапишется)
+      // Не проверяем существование чтобы избежать зависания на .get()
+      await sessionRef.child('dmId').set(dmId).timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          debugPrint('⚠️  initializeSessionInRTDB timeout - продолжаем');
+        },
+      );
+
+      debugPrint('✅ dmId initialized in RTDB for session $sessionId');
+    } catch (e, stackTrace) {
+      debugPrint('⚠️  initializeSessionInRTDB warning: $e\nStackTrace: $stackTrace');
+      // Не выбрасываем исключение - это некритично
+    }
+  }
 
   /// Создать новый запрос в RTDB
   Future<String> createRequest({
@@ -28,23 +56,25 @@ class RealtimeRequestsService {
         throw Exception('Failed to generate request ID from push()');
       }
 
-      final requestData = {
-        'id': requestId,
-        'sessionId': sessionId,
-        'dmId': dmId,
-        'characterId': request.characterId,
-        'characterName': request.characterName,
-        'type': request.type.name,
-        'formula': request.formula,
-        'modifier': request.modifier,
-        'targetAc': request.targetAc,
-        'note': request.note,
-        'abilityType': request.abilityType?.name,
-        'status': 'open',
-        'audience': request.audience,
-        'targetUids': request.targetUids,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
+       final requestData = {
+         'id': requestId,
+         'sessionId': sessionId,
+         'dmId': dmId,
+         'characterId': request.characterId,
+         'characterName': request.characterName,
+         'type': request.type.name,
+         'formula': request.formula,
+          'modifier': request.modifier,
+          'dmAbilityType': request.dmAbilityType?.name,
+         'targetAc': request.targetAc,
+         'note': request.note,
+          'abilityType': request.abilityType?.name,
+          'dmMode': request.dmMode,
+         'status': 'open',
+         'audience': request.audience,
+         'targetUids': request.targetUids,
+         'createdAt': DateTime.now().millisecondsSinceEpoch,
+       };
 
       debugPrint('📝 createRequest payload: $requestData');
       debugPrint('📍 createRequest path: ${newRef.path}');
@@ -254,9 +284,27 @@ class RealtimeRequestsService {
                 orElse: () => AbilityType.strength,
               )
             : null,
-        createdAt: (data['createdAt'] as String?),
+        dmAbilityType: data['dmAbilityType'] != null
+            ? AbilityType.values.firstWhere(
+                (a) => a.name == data['dmAbilityType'] as String,
+                orElse: () => AbilityType.strength,
+              )
+            : null,
+        createdAt: () {
+          final created = data['createdAt'];
+          if (created == null) return null;
+          if (created is int) {
+            try {
+              return DateTime.fromMillisecondsSinceEpoch(created).toIso8601String();
+            } catch (_) {
+              return created.toString();
+            }
+          }
+          return created as String?;
+        }(),
         status: (data['status'] as String?) ?? 'open',
         audience: (data['audience'] as String?) ?? 'all',
+        dmMode: (data['dmMode'] as String?) ?? null,
         targetUids: targetUids,
       );
     } catch (e) {
@@ -265,6 +313,12 @@ class RealtimeRequestsService {
     }
   }
 }
+
+
+
+
+
+
 
 
 

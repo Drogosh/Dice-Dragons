@@ -54,6 +54,7 @@ class DefaultFirebaseOptions {
     appId: '1:989858079176:android:718584d54c254ba1cee0fd',
     messagingSenderId: '989858079176',
     projectId: 'dice-and-dragons-db53f',
+    databaseURL: 'https://dice-and-dragons-db53f-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'dice-and-dragons-db53f.firebasestorage.app',
   );
 
@@ -62,6 +63,7 @@ class DefaultFirebaseOptions {
     appId: '1:989858079176:ios:21b8c0b483752e28cee0fd',
     messagingSenderId: '989858079176',
     projectId: 'dice-and-dragons-db53f',
+    databaseURL: 'https://dice-and-dragons-db53f-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'dice-and-dragons-db53f.firebasestorage.app',
     iosBundleId: 'com.example.diceAndDragons',
   );

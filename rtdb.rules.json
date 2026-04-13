@@ -69,13 +69,13 @@
     // ===== LIVE SESSIONS (активные сессии с запросами и ответами) =====
     "liveSessions": {
       "$sessionId": {
-        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
-        ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".read": true,
+        ".write": true,
 
         // Запросы от DM
         "requests": {
-          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
-          ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+          ".read": "root.child('liveSessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('liveSessions').child($sessionId).child('dmId').val() === auth.uid",
+          ".write": "root.child('liveSessions').child($sessionId).child('dmId').val() === auth.uid || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
 
           "$requestId": {
             ".validate": "newData.hasChildren(['id', 'dmId', 'characterName', 'formula', 'type', 'status', 'createdAt'])",
@@ -96,7 +96,7 @@
 
         // Ответы игроков на запросы
         "responses": {
-          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+          ".read": "root.child('liveSessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('liveSessions').child($sessionId).child('dmId').val() === auth.uid",
 
           "$requestId": {
             "$playerId": {
@@ -114,15 +114,15 @@
 
         // Presence (уже существует, оставляем для совместимости)
         "presence": {
-          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()",
+          ".read": "root.child('liveSessions').child($sessionId).child('members').child(auth.uid).exists()",
           "$uid": {
-            ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid"
+            ".write": "auth.uid == $uid || root.child('liveSessions').child($sessionId).child('dmId').val() == auth.uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid"
           }
         },
 
         "members": {
           "$uid": {
-            ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()"
+            ".read": "root.child('liveSessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('liveSessions').child($sessionId).child('dmId').val() === auth.uid"
           }
         }
       }

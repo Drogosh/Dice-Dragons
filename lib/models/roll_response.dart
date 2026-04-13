@@ -42,16 +42,28 @@ class RollResponse {
 
   /// Создать из RTDB формата (Map)
   factory RollResponse.fromMap(String uid, Map<String, dynamic> map) {
+    // Handle createdAt: either as number (milliseconds) or as string
+    String createdAtStr;
+    final createdAtValue = map['createdAt'];
+    if (createdAtValue is int) {
+      // Convert milliseconds timestamp to ISO 8601 string
+      createdAtStr = DateTime.fromMillisecondsSinceEpoch(createdAtValue).toIso8601String();
+    } else if (createdAtValue is String) {
+      createdAtStr = createdAtValue;
+    } else {
+      createdAtStr = DateTime.now().toIso8601String();
+    }
+
     return RollResponse(
       uid: uid,
-      displayName: map['displayName'] as String? ?? 'Unknown',
+      displayName: (map['displayName'] as String?) ?? (map['characterName'] as String?) ?? 'Unknown',
       characterId: map['characterId'] as String?,
       characterName: map['characterName'] as String?,
       baseRoll: map['baseRoll'] as int? ?? 0,
       mode: map['mode'] as String? ?? 'normal',
       modifier: map['modifier'] as int? ?? 0,
       total: map['total'] as int? ?? 0,
-      createdAt: map['createdAt'] as String? ?? DateTime.now().toIso8601String(),
+      createdAt: createdAtStr,
       success: map['success'] as bool?,
     );
   }
