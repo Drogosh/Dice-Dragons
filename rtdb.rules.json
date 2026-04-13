@@ -1,84 +1,89 @@
 {
   "rules": {
-    // ===== LIVE SESSIONS (для presence и events) =====
-    "liveSessions": {
-      "$sessionId": {
-        // ===== PRESENCE (статус онлайн) =====
-        "presence": {
-          ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
-          "$uid": {
-            ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid",
-            ".validate": "newData.hasChildren(['online', 'lastSeen']) && newData.child('online').isBoolean()",
-            "online": {
-              ".validate": "newData.isBoolean()"
-            },
-            "lastSeen": {
-              ".validate": "newData.isNumber()"
-            }
-          }
-        },
-
-        // ===== EVENTS (для синхронизации игровых событий) =====
-        "events": {
-          ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
-          ".write": "root.child('members').child($sessionId).child(auth.uid).exists()",
-          "$eventId": {
-            ".validate": "newData.hasChildren(['type', 'timestamp']) && newData.child('type').isString()",
-            "type": {
-              ".validate": "newData.isString() && (newData.val() == 'roll' || newData.val() == 'attack' || newData.val() == 'spell' || newData.val() == 'message' || newData.val() == 'action')"
-            },
-            "timestamp": {
-              ".validate": "newData.isNumber()"
-            },
-            "userId": {
-              ".validate": "newData.isString()"
-            }
-          }
-        },
-
-        // ===== MEMBERS INDEX (для быстрого поиска) =====
-        "members": {
-          "$uid": {
-            ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid",
-            ".read": "root.child('members').child($sessionId).child(auth.uid).exists()"
-          }
-        }
-      }
-    },
-
-    // ===== FIRESTORE SESSIONS (для метаданных) =====
+    // ===== SESSIONS (основные данные сессий) =====
     "sessions": {
       "$sessionId": {
-        ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
-        ".write": false,
+        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".validate": "newData.hasChildren(['id', 'dmId', 'name', 'joinCode'])",
 
-        "events": {
-          ".read": "root.child('members').child($sessionId).child(auth.uid).exists()",
-          ".write": "root.child('members').child($sessionId).child(auth.uid).exists()",
-          "$eventId": {
-            ".validate": "newData.hasChildren(['type', 'timestamp']) && newData.child('type').isString()",
-            "type": {
-              ".validate": "newData.isString() && (newData.val() == 'roll' || newData.val() == 'attack' || newData.val() == 'spell' || newData.val() == 'message' || newData.val() == 'action')"
-            },
-            "timestamp": {
-              ".validate": "newData.isNumber()"
-            },
-            "userId": {
-              ".validate": "newData.isString()"
-            }
+        "members": {
+          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+          ".write": false,
+          "$userId": {
+            ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid || $userId === auth.uid"
           }
         },
 
-        "members": {
-          "$uid": {
-            ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid",
-            ".read": "root.child('members').child($sessionId).child(auth.uid).exists()"
+        "updatedAt": {
+          ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid"
+        }
+      }
+    },
+
+    // ===== REQUESTS (запросы бросков) =====
+    "requests": {
+      "$sessionId": {
+        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+        "$requestId": {
+          ".validate": "newData.hasChildren(['id', 'characterId', 'characterName', 'type', 'formula', 'status'])"
+        }
+      }
+    },
+
+    // ===== PRESENCE (статус онлайн членов) =====
+    "presence": {
+      "$sessionId": {
+        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+        "$userId": {
+          ".write": "$userId === auth.uid",
+          ".validate": "newData.hasChildren(['userId', 'lastSeen'])"
+        }
+      }
+    },
+
+    // ===== EVENTS (игровые события в реальном времени) =====
+    "events": {
+      "$sessionId": {
+        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".write": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+        "$eventId": {
+          ".validate": "newData.hasChildren(['type', 'timestamp', 'userId'])",
+          "type": {
+            ".validate": "newData.isString() && ['roll', 'attack', 'spell', 'message', 'action', 'update'].includes(newData.val())"
+          },
+          "timestamp": {
+            ".validate": "newData.isNumber()"
+          },
+          "userId": {
+            ".validate": "newData.isString()"
           }
         }
       }
     },
 
-    // ===== SESSION METADATA (для кэша) =====
+    // ===== LIVE SESSIONS (для совместимости) =====
+    "liveSessions": {
+      "$sessionId": {
+        "presence": {
+          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()",
+          "$uid": {
+            ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid"
+          }
+        },
+        "members": {
+          "$uid": {
+            ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()"
+          }
+        }
+      }
+    },
+
+    // ===== SESSION METADATA (кэш метаданных) =====
     "sessionMetadata": {
       "$sessionId": {
         ".read": true,
@@ -86,7 +91,7 @@
       }
     },
 
-    // ===== DEFAULT DENY =====
+    // ===== DEFAULT DENY (по умолчанию отклоняем) =====
     "$other": {
       ".read": false,
       ".write": false
