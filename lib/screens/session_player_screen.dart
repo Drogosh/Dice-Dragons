@@ -117,7 +117,7 @@ class _RequestCardState extends State<RequestCard> {
     _hasResponded = widget.responsesService.hasPlayerResponded(
       widget.sessionId,
       widget.request.id ?? '',
-      widget.playerId,
+      widget.currentPlayerId,
     );
   }
 
@@ -403,6 +403,7 @@ class _RequestCardState extends State<RequestCard> {
     }
   }
 }
+
 
 
 

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import 'dart:async';
-import 'dart:math;
+import 'dart:math';
 import '../models/session.dart';
 import '../models/request.dart';
 import '../models/character.dart';
