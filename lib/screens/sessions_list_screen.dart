@@ -111,6 +111,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                 );
 
                 if (mounted) {
+                  debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
                   Navigator.pop(context);
 
                   // Показать код присоединения
@@ -132,8 +133,10 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showJoinCodeDialog(Session session) {
+    debugPrint('✅ Показываю диалог с кодом сессии: ${session.joinCode}');
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.grey[850],
         title: const Text(
@@ -188,6 +191,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
           ),
           ElevatedButton(
             onPressed: () {
+              debugPrint('👉 Нажата кнопка "К сессии (DM)"');
               Navigator.pop(context);
               _navigateToDMScreen(session);
             },
