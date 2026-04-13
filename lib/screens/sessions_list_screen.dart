@@ -27,6 +27,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showCreateSessionDialog() {
+    debugPrint('🔥 Открываю диалог создания сессии');
     final nameController = TextEditingController();
     final maxPlayersController = TextEditingController();
     final campaignController = TextEditingController();
@@ -110,15 +111,22 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   maxPlayers: int.tryParse(maxPlayersController.text) ?? 0,
                 );
 
-                if (mounted) {
-                  debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
-                  Navigator.pop(context);
+                debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
 
-                  // Показать код присоединения
-                  _showJoinCodeDialog(session);
-                }
+                // Закрыть диалог создания
+                Navigator.pop(context);
+
+                // Показать диалог с кодом
+                Future.delayed(const Duration(milliseconds: 300), () {
+                  if (mounted) {
+                    _showJoinCodeDialog(session);
+                  }
+                });
               } catch (e) {
-                setState(() => _errorMessage = 'Ошибка: $e');
+                debugPrint('❌ Ошибка создания сессии: $e');
+                if (mounted) {
+                  setState(() => _errorMessage = 'Ошибка: $e');
+                }
               } finally {
                 if (mounted) {
                   setState(() => _isLoading = false);
@@ -133,73 +141,85 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showJoinCodeDialog(Session session) {
-    debugPrint('✅ Показываю диалог с кодом сессии: ${session.joinCode}');
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[850],
-        title: const Text(
-          'Сессия создана!',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Поделитесь этим кодом с игроками:',
+    debugPrint('🔥🔥🔥 ВЫЗЫВАЮ _showJoinCodeDialog! Код: ${session.joinCode}');
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          debugPrint('🔥🔥🔥 Строю AlertDialog');
+          return AlertDialog(
+            backgroundColor: Colors.grey[850],
+            title: const Text(
+              'Сессия создана!',
               style: TextStyle(color: Colors.white),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[900],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                session.joinCode,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Поделитесь этим кодом с игроками:',
+                  style: TextStyle(color: Colors.white),
                 ),
-                textAlign: TextAlign.center,
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[900],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    session.joinCode,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Название: ${session.name}',
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
+                if (session.campaignName != null)
+                  Text(
+                    'Кампания: ${session.campaignName}',
+                    style: TextStyle(color: Colors.grey[400]),
+                  ),
+                Text(
+                  'Игроки: ${session.getPlayers().length}${session.maxPlayers > 0 ? '/${session.maxPlayers}' : ''}',
+                  style: TextStyle(color: Colors.grey[400]),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  debugPrint('👉 Нажата кнопка "Закрыть"');
+                  Navigator.pop(dialogContext);
+                },
+                child: const Text('Закрыть'),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Название: ${session.name}',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
-            if (session.campaignName != null)
-              Text(
-                'Кампания: ${session.campaignName}',
-                style: TextStyle(color: Colors.grey[400]),
+              ElevatedButton(
+                onPressed: () {
+                  debugPrint('👉👉👉 Нажата кнопка "К сессии (DM)"!!!');
+                  Navigator.pop(dialogContext);
+                  _navigateToDMScreen(session);
+                },
+                child: const Text('К сессии (DM)'),
               ),
-            Text(
-              'Игроки: ${session.getPlayers().length}${session.maxPlayers > 0 ? '/${session.maxPlayers}' : ''}',
-              style: TextStyle(color: Colors.grey[400]),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              debugPrint('👉 Нажата кнопка "К сессии (DM)"');
-              Navigator.pop(context);
-              _navigateToDMScreen(session);
-            },
-            child: const Text('К сессии (DM)'),
-          ),
-        ],
-      ),
-    );
+            ],
+          );
+        },
+      );
+      debugPrint('🔥🔥🔥 showDialog вызван');
+    } catch (e) {
+      debugPrint('🔥🔥🔥 ОШИБКА в _showJoinCodeDialog: $e');
+    }
   }
 
   void _navigateToDMScreen(Session session) {
