@@ -41,15 +41,18 @@ class RealtimeResponsesService {
         'success': success,
       };
 
+      debugPrint('📤 submitResponse START: sessionId=$sessionId requestId=$requestId uid=$uid');
+      debugPrint('   data: baseRoll=$baseRoll mode=$mode modifier=$modifier total=$total');
+
       await ref.set(responseData);
-      debugPrint('✅ Ответ отправлен: $uid на запрос $requestId');
-    } catch (e) {
-      debugPrint('❌ Ошибка отправки ответа: $e');
+      debugPrint('✅ submitResponse SUCCESS: ответ сохранен');
+    } catch (e, stackTrace) {
+      debugPrint('❌ submitResponse ERROR: $e\nStackTrace: $stackTrace');
       rethrow;
     }
   }
 
-  /// Watch все ответы на запрос (для DM)
+  /// Watch все ответы на запрос (для DM - real-time)
   Stream<Map<String, RollResponse>> watchResponses(
     String sessionId,
     String requestId,
@@ -58,22 +61,46 @@ class RealtimeResponsesService {
         .ref('$_liveSessionsPath/$sessionId/$_responsesPath/$requestId')
         .onValue
         .map((event) {
-          if (!event.snapshot.exists) return {};
+          try {
+            if (!event.snapshot.exists) {
+              debugPrint('📭 watchResponses: no responses for $requestId');
+              return {};
+            }
 
-          final data = event.snapshot.value as Map?;
-          if (data == null) return {};
+            final raw = event.snapshot.value;
+            if (raw == null) {
+              debugPrint('📭 watchResponses: snapshot.value is null');
+              return {};
+            }
 
-          return Map.fromEntries(
-            data.entries.map((e) {
+            final Map<String, dynamic> map;
+            try {
+              map = Map<String, dynamic>.from(raw as Map);
+            } catch (e) {
+              debugPrint('⚠️  watchResponses: failed to cast: $e');
+              return {};
+            }
+
+            debugPrint('📨 watchResponses: got ${map.length} responses for requestId=$requestId');
+
+            final results = <String, RollResponse>{};
+            for (final entry in map.entries) {
               try {
-                final mapData = Map<String, dynamic>.from(e.value as Map);
-                return MapEntry(e.key, RollResponse.fromMap(e.key, mapData));
-              } catch (err) {
-                debugPrint('❌ Ошибка парсинга ответа: $err');
-                return null;
+                final mapData = Map<String, dynamic>.from(entry.value as Map);
+                final response = RollResponse.fromMap(entry.key, mapData);
+                results[entry.key] = response;
+                debugPrint('   ✅ Response from ${response.displayName}: total=${response.total}');
+              } catch (e) {
+                debugPrint('⚠️  watchResponses: parse error for ${entry.key}: $e');
               }
-            }).whereType<MapEntry<String, RollResponse>>(),
-          );
+            }
+
+            debugPrint('✅ watchResponses: returning ${results.length} responses');
+            return results;
+          } catch (e, stackTrace) {
+            debugPrint('❌ watchResponses ERROR: $e\nStackTrace: $stackTrace');
+            return {};
+          }
         });
   }
 

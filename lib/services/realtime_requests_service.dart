@@ -16,19 +16,23 @@ class RealtimeRequestsService {
     required Request request,
   }) async {
     try {
-      // Генерируем ключ под правильным путем requests
+      debugPrint('🚀 createRequest START: sessionId=$sessionId dmId=$dmId');
+
+      // Генерируем ключ ровно под нужным путем
       final requestsRef = _database.ref('$_liveSessionsPath/$sessionId/$_requestsPath');
       final newRef = requestsRef.push();
       final requestId = newRef.key;
 
       if (requestId == null) {
-        throw Exception('Failed to generate request ID');
+        throw Exception('Failed to generate request ID from push()');
       }
 
       final requestData = {
         'id': requestId,
         'sessionId': sessionId,
         'dmId': dmId,
+        'characterId': request.characterId,
+        'characterName': request.characterName,
         'type': request.type.name,
         'formula': request.formula,
         'modifier': request.modifier,
@@ -41,51 +45,69 @@ class RealtimeRequestsService {
         'createdAt': DateTime.now().toIso8601String(),
       };
 
+      debugPrint('📝 createRequest payload: $requestData');
+
       await newRef.set(requestData);
-      debugPrint('✅ Live запрос создан: $requestId в сессии $sessionId');
-      debugPrint('   Тип: ${request.type.name}, Формула: ${request.formula}');
+
+      debugPrint('✅ createRequest SUCCESS: requestId=$requestId path=${newRef.path}');
       return requestId;
-    } catch (e) {
-      debugPrint('❌ Ошибка создания запроса: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ createRequest ERROR: $e\nStackTrace: $stackTrace');
       rethrow;
     }
   }
 
-  /// Watch все открытые запросы сессии для DM
+  /// Watch все открытые запросы сессии для DM (real-time)
   Stream<List<Request>> watchDMRequests(String sessionId) {
     return _database
         .ref('$_liveSessionsPath/$sessionId/$_requestsPath')
         .onValue
         .map((event) {
-          if (!event.snapshot.exists) {
-            debugPrint('📭 No requests found for session $sessionId');
-            return [];
-          }
+          try {
+            if (!event.snapshot.exists) {
+              debugPrint('📭 watchDMRequests: no requests for $sessionId');
+              return [];
+            }
 
-          final data = event.snapshot.value as Map?;
-          if (data == null) {
-            debugPrint('📭 Requests data is null for session $sessionId');
-            return [];
-          }
+            final raw = event.snapshot.value;
+            if (raw == null) {
+              debugPrint('📭 watchDMRequests: snapshot.value is null for $sessionId');
+              return [];
+            }
 
-          debugPrint('📨 Received ${data.length} requests for session $sessionId');
+            // Безопасное преобразование
+            final Map<String, dynamic> map;
+            try {
+              map = Map<String, dynamic>.from(raw as Map);
+            } catch (e) {
+              debugPrint('⚠️  watchDMRequests: failed to cast raw to Map: $e');
+              return [];
+            }
 
-          return data.entries
-              .map((e) {
-                try {
-                  return _parseRequest(e.key, e.value as Map);
-                } catch (err) {
-                  debugPrint('❌ Ошибка парсинга запроса ${e.key}: $err');
-                  return null;
+            debugPrint('📨 watchDMRequests: got ${map.length} entries for $sessionId');
+
+            final results = <Request>[];
+            for (final entry in map.entries) {
+              try {
+                final req = _parseRequest(entry.key, entry.value as Map);
+                if (req.status == 'open') {
+                  results.add(req);
                 }
-              })
-              .whereType<Request>()
-              .where((req) => req.status == 'open')
-              .toList();
+              } catch (e) {
+                debugPrint('⚠️  watchDMRequests: parse error for key ${entry.key}: $e');
+              }
+            }
+
+            debugPrint('✅ watchDMRequests: returning ${results.length} open requests');
+            return results;
+          } catch (e, stackTrace) {
+            debugPrint('❌ watchDMRequests ERROR: $e\nStackTrace: $stackTrace');
+            return [];
+          }
         });
   }
 
-  /// Watch открытые запросы для конкретного игрока
+  /// Watch открытые запросы для конкретного игрока (с фильтрацией)
   Stream<List<Request>> watchPlayerRequests(
     String sessionId,
     String playerId,
@@ -95,25 +117,49 @@ class RealtimeRequestsService {
         .ref('$_liveSessionsPath/$sessionId/$_requestsPath')
         .onValue
         .map((event) {
-          if (!event.snapshot.exists) return [];
+          try {
+            if (!event.snapshot.exists) {
+              debugPrint('📭 watchPlayerRequests: no requests for $sessionId/$playerId');
+              return [];
+            }
 
-          final data = event.snapshot.value as Map?;
-          if (data == null) return [];
+            final raw = event.snapshot.value;
+            if (raw == null) return [];
 
-          return data.entries
-              .map((e) {
-                try {
-                  return _parseRequest(e.key, e.value as Map);
-                } catch (err) {
-                  debugPrint('❌ Ошибка парсинга запроса: $err');
-                  return null;
+            final Map<String, dynamic> map;
+            try {
+              map = Map<String, dynamic>.from(raw as Map);
+            } catch (e) {
+              debugPrint('⚠️  watchPlayerRequests: failed to cast: $e');
+              return [];
+            }
+
+            debugPrint('📨 watchPlayerRequests: checking ${map.length} requests for player=$playerId');
+
+            final results = <Request>[];
+            for (final entry in map.entries) {
+              try {
+                final req = _parseRequest(entry.key, entry.value as Map);
+
+                // Фильтруем: открытые запросы, подходящие по аудитории
+                final matchAudience = req.audience == 'all' ||
+                    (req.audience == 'subset' && req.targetUids.contains(playerId));
+
+                if (req.status == 'open' && matchAudience) {
+                  results.add(req);
+                  debugPrint('   ✅ Request ${req.id} matches (type=${req.type.name}, audience=${req.audience})');
                 }
-              })
-              .whereType<Request>()
-              .where((req) =>
-                  req.status == 'open' &&
-                  (req.audience == 'all' || (req.audience == 'subset' && req.targetUids.contains(playerId))))
-              .toList();
+              } catch (e) {
+                debugPrint('⚠️  watchPlayerRequests: parse error for ${entry.key}: $e');
+              }
+            }
+
+            debugPrint('✅ watchPlayerRequests: returning ${results.length} applicable requests');
+            return results;
+          } catch (e, stackTrace) {
+            debugPrint('❌ watchPlayerRequests ERROR: $e\nStackTrace: $stackTrace');
+            return [];
+          }
         });
   }
 
