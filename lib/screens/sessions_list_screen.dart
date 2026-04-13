@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
+import 'session_dm_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -197,29 +199,14 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _navigateToDMScreen(Session session) {
-    // TODO: Реализовать переход на экран DM
-    // Нужен персонаж DM (если есть) или пока null
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(
-    //     builder: (context) => SessionDMScreen(
-    //       session: session,
-    //       sessionService: _sessionService,
-    //     ),
-    //   ),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Переход на экран DM (скоро будет)')),
-    );
-  }
-          ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SessionDMScreen(
+          session: session,
+          sessionService: _sessionService,
+          dmCharacter: null, // DM персонаж можно получить отдельно если нужно
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-        ],
       ),
     );
   }
