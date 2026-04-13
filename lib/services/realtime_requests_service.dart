@@ -16,10 +16,14 @@ class RealtimeRequestsService {
     required Request request,
   }) async {
     try {
-      final requestId = _database.ref().push().key ?? '';
-      if (requestId.isEmpty) throw Exception('Failed to generate request ID');
+      // Генерируем ключ под правильным путем requests
+      final requestsRef = _database.ref('$_liveSessionsPath/$sessionId/$_requestsPath');
+      final newRef = requestsRef.push();
+      final requestId = newRef.key;
 
-      final ref = _database.ref('$_liveSessionsPath/$sessionId/$_requestsPath/$requestId');
+      if (requestId == null) {
+        throw Exception('Failed to generate request ID');
+      }
 
       final requestData = {
         'id': requestId,
@@ -37,8 +41,9 @@ class RealtimeRequestsService {
         'createdAt': DateTime.now().toIso8601String(),
       };
 
-      await ref.set(requestData);
-      debugPrint('✅ Live запрос создан: $requestId');
+      await newRef.set(requestData);
+      debugPrint('✅ Live запрос создан: $requestId в сессии $sessionId');
+      debugPrint('   Тип: ${request.type.name}, Формула: ${request.formula}');
       return requestId;
     } catch (e) {
       debugPrint('❌ Ошибка создания запроса: $e');
@@ -52,17 +57,25 @@ class RealtimeRequestsService {
         .ref('$_liveSessionsPath/$sessionId/$_requestsPath')
         .onValue
         .map((event) {
-          if (!event.snapshot.exists) return [];
+          if (!event.snapshot.exists) {
+            debugPrint('📭 No requests found for session $sessionId');
+            return [];
+          }
 
           final data = event.snapshot.value as Map?;
-          if (data == null) return [];
+          if (data == null) {
+            debugPrint('📭 Requests data is null for session $sessionId');
+            return [];
+          }
+
+          debugPrint('📨 Received ${data.length} requests for session $sessionId');
 
           return data.entries
               .map((e) {
                 try {
                   return _parseRequest(e.key, e.value as Map);
                 } catch (err) {
-                  debugPrint('❌ Ошибка парсинга запроса: $err');
+                  debugPrint('❌ Ошибка парсинга запроса ${e.key}: $err');
                   return null;
                 }
               })
@@ -167,4 +180,6 @@ class RealtimeRequestsService {
     );
   }
 }
+
+
 

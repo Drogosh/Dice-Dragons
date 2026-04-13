@@ -178,7 +178,6 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
               dmCharacter: dmCharacter,
               currentUserId: currentUser.uid,
               currentUserDisplayName: currentUser.displayName ?? 'DM',
-              presenceService: PresenceService(),
             ),
           ),
         );
@@ -302,7 +301,6 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
               playerCharacter: !session.isDM(currentUser.uid) ? userCharacter : null,
               currentUserId: currentUser.uid,
               currentUserDisplayName: currentUser.displayName ?? 'Unknown',
-              presenceService: PresenceService(),
             ),
           ),
         );

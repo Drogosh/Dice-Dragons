@@ -76,13 +76,12 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDM = widget.session.isDM(widget.currentUserId);
-
     return StreamBuilder<Session?>(
       stream: _sessionService.watchSession(widget.session.id),
       initialData: widget.session,
       builder: (context, snapshot) {
         final liveSession = snapshot.data ?? widget.session;
+        final isDM = liveSession.isDM(widget.currentUserId);
 
         return Scaffold(
           appBar: AppBar(
@@ -139,6 +138,7 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
     );
   }
 }
+
 
 
 
