@@ -1,20 +1,15 @@
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import '../models/session.dart';
 import '../models/request.dart';
-import 'dart:convert';
 
 /// Сервис для работы с Firebase Real-time Database
 class FirebaseRealtimeDatabaseService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
-  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
 
   // Пути в RTDB
   static const String _sessionsPath = 'sessions';
-  static const String _sessionsMetaPath = 'sessions_metadata';
   static const String _requestsPath = 'requests';
-  static const String _presencePath = 'presence';
   static const String _liveSessionsPath = 'liveSessions';
   static const String _liveRequestsPath = 'requests';
   static const String _liveResponsesPath = 'responses';
@@ -23,9 +18,9 @@ class FirebaseRealtimeDatabaseService {
   Future<void> initialize() async {
     try {
       // Включить persistent caching
-      await _database.setPersistenceEnabled(true);
+      _database.setPersistenceEnabled(true);
       // Установить размер кэша (10 MB)
-      await _database.setPersistenceCacheSizeBytes(10 * 1024 * 1024);
+      _database.setPersistenceCacheSizeBytes(10 * 1024 * 1024);
       debugPrint('✅ Firebase Realtime Database инициализирована');
     } catch (e) {
       debugPrint('❌ Ошибка инициализации RTDB: $e');
@@ -258,18 +253,20 @@ class FirebaseRealtimeDatabaseService {
 
       final requestData = {
         'id': requestId,
+        'sessionId': request.sessionId,
+        'dmId': request.dmId,
         'characterId': request.characterId,
         'characterName': request.characterName,
         'type': request.type.name,
         'formula': request.formula,
+        'modifier': request.modifier,
         'targetAc': request.targetAc,
         'note': request.note,
+        'abilityType': request.abilityType?.name,
+        'createdAt': request.createdAt,
         'status': request.status,
         'audience': request.audience,
         'targetUids': request.targetUids,
-        'createdAt': request.createdAt.millisecondsSinceEpoch,
-        'completedAt': request.completedAt?.millisecondsSinceEpoch,
-        'result': request.result,
       };
 
       await ref.set(requestData);
@@ -586,27 +583,35 @@ class FirebaseRealtimeDatabaseService {
   /// Парсер запроса
   Request _parseRequest(Map requestData) {
     return Request(
-      id: requestData['id'],
-      characterId: requestData['characterId'],
-      characterName: requestData['characterName'] ?? '',
+      id: requestData['id'] as String?,
+      sessionId: requestData['sessionId'] as String? ?? '',
+      dmId: requestData['dmId'] as String? ?? '',
+      characterId: requestData['characterId'] as String? ?? '',
+      characterName: requestData['characterName'] as String? ?? '',
       type: RequestType.values.firstWhere(
         (t) => t.name == requestData['type'],
-        orElse: () => RequestType.skill,
+        orElse: () => RequestType.check,
       ),
-      formula: requestData['formula'] ?? '',
-      targetAc: requestData['targetAc'],
-      note: requestData['note'],
-      status: requestData['status'] ?? 'open',
-      audience: requestData['audience'] ?? 'all',
-      targetUids: List<String>.from(requestData['targetUids'] ?? []),
-      createdAt: DateTime.fromMillisecondsSinceEpoch(
-        requestData['createdAt'] ?? 0,
-      ),
-      completedAt: requestData['completedAt'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(requestData['completedAt'])
+      formula: requestData['formula'] as String? ?? '',
+      modifier: requestData['modifier'] as int? ?? 0,
+      targetAc: requestData['targetAc'] as int?,
+      note: requestData['note'] as String?,
+      abilityType: requestData['abilityType'] != null
+          ? AbilityType.values.firstWhere(
+              (a) => a.name == requestData['abilityType'],
+              orElse: () => AbilityType.strength,
+            )
           : null,
-      result: requestData['result'],
+      createdAt: requestData['createdAt'] as String?,
+      status: requestData['status'] as String? ?? 'open',
+      audience: requestData['audience'] as String? ?? 'all',
+      targetUids: List<String>.from(requestData['targetUids'] as List<dynamic>? ?? []),
     );
   }
 }
+
+
+
+
+
 
