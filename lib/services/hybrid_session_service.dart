@@ -125,7 +125,7 @@ class HybridSessionService {
 
       // Если не найдено в RTDB, получаем из Firestore
       final firestoreSession = await _getSessionFromFirestore(sessionId);
-      
+
       // И сохраняем в RTDB для синхронизации
       if (firestoreSession != null) {
         await _rtdb.createSessionInRTDB(firestoreSession);
@@ -267,7 +267,7 @@ class HybridSessionService {
 
       // Удаляем из Firestore
       final collRef = _firestore.collection(_sessionsCollection).doc(sessionId);
-      
+
       // Удаляем все подколлекции
       final membersSnapshot = await collRef.collection(_membersSubcollection).get();
       for (final doc in membersSnapshot.docs) {
@@ -307,19 +307,31 @@ class HybridSessionService {
           .doc()
           .id; // Генерируем ID
 
-      final now = DateTime.now();
+      final user = _auth.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      final now = DateTime.now().toString();
       final request = Request(
         id: requestId,
-        characterId: character.id,
+        sessionId: sessionId,
+        dmId: user.uid,
+        characterId: character.id ?? '',
         characterName: character.name,
         type: type,
         formula: baseFormula,
+        modifier: 0,
         targetAc: targetAc,
         note: note,
+        abilityType: abilityType != null
+            ? AbilityType.values.firstWhere(
+                (a) => a.name == abilityType,
+                orElse: () => AbilityType.strength,
+              )
+            : null,
+        createdAt: now,
         status: 'open',
         audience: audience,
         targetUids: targetUids,
-        createdAt: now,
       );
 
       // Сохраняем в RTDB
@@ -336,16 +348,20 @@ class HybridSessionService {
           .collection(_requestsSubcollection)
           .doc(requestId)
           .set({
+        'sessionId': sessionId,
+        'dmId': user.uid,
         'characterId': character.id,
         'characterName': character.name,
         'type': type.name,
         'formula': baseFormula,
+        'modifier': 0,
         'targetAc': targetAc,
         'note': note,
+        'abilityType': abilityType,
         'status': 'open',
         'audience': audience,
         'targetUids': targetUids,
-        'createdAt': Timestamp.fromDate(now),
+        'createdAt': Timestamp.fromDate(DateTime.parse(now)),
       });
 
       debugPrint('✅ Request created: $requestId');
@@ -381,7 +397,8 @@ class HybridSessionService {
   /// Закрыть запрос
   Future<void> closeRequest(String sessionId, String requestId) async {
     try {
-      await _rtdb.closeRequest(sessionId, requestId);
+      // Обновляем в RTDB
+      await _rtdb.updateRequestStatus(sessionId, requestId, 'closed');
 
       // Также обновляем в Firestore
       await _firestore
@@ -391,7 +408,6 @@ class HybridSessionService {
           .doc(requestId)
           .update({
         'status': 'closed',
-        'completedAt': Timestamp.now(),
       });
 
       debugPrint('✅ Request closed: $requestId');
@@ -405,22 +421,32 @@ class HybridSessionService {
   Request _parseRequestFromFirestore(String id, Map<String, dynamic> data) {
     return Request(
       id: id,
-      characterId: data['characterId'],
-      characterName: data['characterName'] ?? '',
+      sessionId: data['sessionId'] as String? ?? '',
+      dmId: data['dmId'] as String? ?? '',
+      characterId: data['characterId'] as String? ?? '',
+      characterName: data['characterName'] as String? ?? '',
       type: RequestType.values.firstWhere(
         (t) => t.name == data['type'],
-        orElse: () => RequestType.skill,
+        orElse: () => RequestType.check,
       ),
-      formula: data['formula'] ?? '',
-      targetAc: data['targetAc'],
-      note: data['note'],
-      status: data['status'] ?? 'open',
-      audience: data['audience'] ?? 'all',
-      targetUids: List<String>.from(data['targetUids'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      completedAt: (data['completedAt'] as Timestamp?)?.toDate(),
-      result: data['result'],
+      formula: data['formula'] as String? ?? '',
+      modifier: data['modifier'] as int? ?? 0,
+      targetAc: data['targetAc'] as int?,
+      note: data['note'] as String?,
+      abilityType: data['abilityType'] != null
+          ? AbilityType.values.firstWhere(
+              (a) => a.name == data['abilityType'],
+              orElse: () => AbilityType.strength,
+            )
+          : null,
+      createdAt: data['createdAt'] as String?,
+      status: data['status'] as String? ?? 'open',
+      audience: data['audience'] as String? ?? 'all',
+      targetUids: List<String>.from(data['targetUids'] as List<dynamic>? ?? []),
     );
   }
 }
+
+
+
 
