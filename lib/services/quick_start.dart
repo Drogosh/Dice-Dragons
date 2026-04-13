@@ -1,4 +1,6 @@
 // QUICK START - Быстрое начало работы с Hive
+// Этот файл содержит примеры и не должен анализироваться как часть основного приложения
+// ignore_for_file: uri_does_not_exist, undefined_function, undefined_identifier, avoid_print
 
 import 'models/character.dart';
 import 'models/item.dart';

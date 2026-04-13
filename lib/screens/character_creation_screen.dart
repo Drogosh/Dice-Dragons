@@ -137,12 +137,12 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
     
     // Пересчитываем HP при изменении constitution
     if (_selectedClass != null) {
-      print('🔄 Пересчитываю HP при выборе расы');
+      debugPrint('🔄 Пересчитываю HP при выборе расы');
       int conModifier = (_constitution + race.constitutionBonus - 10) ~/ 2;
       int newHp = _selectedClass!.hitDice + conModifier;
-      print('   Constitution: $_constitution + ${race.constitutionBonus} = ${_constitution + race.constitutionBonus}');
-      print('   Con Modifier: $conModifier');
-      print('   HP: ${_selectedClass!.hitDice} + $conModifier = $newHp');
+      debugPrint('   Constitution: $_constitution + ${race.constitutionBonus} = ${_constitution + race.constitutionBonus}');
+      debugPrint('   Con Modifier: $conModifier');
+      debugPrint('   HP: ${_selectedClass!.hitDice} + $conModifier = $newHp');
       _hp = newHp;
     }
   }
@@ -613,15 +613,15 @@ class _CharacterCreationScreenState extends State<CharacterCreationScreen> {
                     int conModifier = (baseConstitution - 10) ~/ 2;
                     _hp = charClass.hitDice + conModifier;
                     
-                    print('🏆 Выбран класс: ${charClass.name}');
-                    print('   Hit Dice: ${charClass.hitDice}');
+                    debugPrint('🏆 Выбран класс: ${charClass.name}');
+                    debugPrint('   Hit Dice: ${charClass.hitDice}');
                     if (_selectedRace != null) {
-                      print('   Constitution: $_constitution + ${_selectedRace!.constitutionBonus} = $baseConstitution');
+                      debugPrint('   Constitution: $_constitution + ${_selectedRace!.constitutionBonus} = $baseConstitution');
                     } else {
-                      print('   Constitution: $baseConstitution');
+                      debugPrint('   Constitution: $baseConstitution');
                     }
-                    print('   Con Modifier: $conModifier');
-                    print('   HP: ${charClass.hitDice} + $conModifier = $_hp');
+                    debugPrint('   Con Modifier: $conModifier');
+                    debugPrint('   HP: ${charClass.hitDice} + $conModifier = $_hp');
                   });
                   Navigator.pop(context);
                 },

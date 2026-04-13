@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/note.dart';
 
@@ -14,7 +15,7 @@ class NotesService {
       final notesJson = box.get(characterId) as List?;
       
       if (notesJson == null) {
-        print('📝 Локально заметок не найдено для $characterId');
+        debugPrint('📝 Локально заметок не найдено для $characterId');
         return [];
       }
 
@@ -25,10 +26,10 @@ class NotesService {
           ))
           .toList();
 
-      print('✅ ЗАГРУЖЕНО ЛОКАЛЬНО: ${notes.length} заметок');
+      debugPrint('✅ ЗАГРУЖЕНО ЛОКАЛЬНО: ${notes.length} заметок');
       return notes;
     } catch (e) {
-      print('❌ Ошибка при загрузке заметок локально: $e');
+      debugPrint('❌ Ошибка при загрузке заметок локально: $e');
       return [];
     }
   }
@@ -46,10 +47,10 @@ class NotesService {
           .get();
 
       final notes = snapshot.docs.map((doc) => Note.fromFirestore(doc)).toList();
-      print('✅ ЗАГРУЖЕНО ИЗ FIRESTORE: ${notes.length} заметок');
+      debugPrint('✅ ЗАГРУЖЕНО ИЗ FIRESTORE: ${notes.length} заметок');
       return notes;
     } catch (e) {
-      print('❌ Ошибка при загрузке заметок из Firestore: $e');
+      debugPrint('❌ Ошибка при загрузке заметок из Firestore: $e');
       return [];
     }
   }
@@ -60,9 +61,9 @@ class NotesService {
       final box = await Hive.openBox(_notesBoxName);
       final notesJson = notes.map((note) => note.toMap()).toList();
       await box.put(characterId, notesJson);
-      print('✅ Заметки сохранены локально');
+      debugPrint('✅ Заметки сохранены локально');
     } catch (e) {
-      print('❌ Ошибка при сохранении заметок локально: $e');
+      debugPrint('❌ Ошибка при сохранении заметок локально: $e');
     }
   }
 
@@ -81,9 +82,9 @@ class NotesService {
           .collection('notes')
           .doc(note.id)
           .set(note.toFirestore());
-      print('✅ Заметка добавлена в Firestore');
+      debugPrint('✅ Заметка добавлена в Firestore');
     } catch (e) {
-      print('❌ Ошибка при добавлении заметки в Firestore: $e');
+      debugPrint('❌ Ошибка при добавлении заметки в Firestore: $e');
     }
   }
 
@@ -102,9 +103,9 @@ class NotesService {
           .collection('notes')
           .doc(note.id)
           .update(note.toFirestore());
-      print('✅ Заметка обновлена в Firestore');
+      debugPrint('✅ Заметка обновлена в Firestore');
     } catch (e) {
-      print('❌ Ошибка при обновлении заметки в Firestore: $e');
+      debugPrint('❌ Ошибка при обновлении заметки в Firestore: $e');
     }
   }
 
@@ -123,9 +124,9 @@ class NotesService {
           .collection('notes')
           .doc(noteId)
           .delete();
-      print('✅ Заметка удалена из Firestore');
+      debugPrint('✅ Заметка удалена из Firestore');
     } catch (e) {
-      print('❌ Ошибка при удалении заметки из Firestore: $e');
+      debugPrint('❌ Ошибка при удалении заметки из Firestore: $e');
     }
   }
 }

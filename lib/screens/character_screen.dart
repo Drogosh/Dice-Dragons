@@ -3,16 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/character.dart';
 import '../services/firestore_service.dart';
+import '../services/session_service.dart';
+import 'session_screen.dart';
 import '../widgets/stat_card.dart';
 import '../widgets/abilities_row.dart';
 import '../widgets/strength_card.dart';
 
 class CharacterScreen extends StatefulWidget {
   final Character character;
+  // Опционально: id сессии, из которой открыт персонаж — нужен для быстрого перехода обратно
+  final String? sessionId;
 
   const CharacterScreen({
     super.key,
     required this.character,
+    this.sessionId,
   });
 
   @override
@@ -33,57 +38,91 @@ class _CharacterScreenState extends State<CharacterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/stats_widget/background.png'),
-          fit: BoxFit.cover,
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(character.name),
+        backgroundColor: Colors.grey[800],
+        actions: [
+          if (widget.sessionId != null)
+            IconButton(
+              icon: const Icon(Icons.meeting_room),
+              tooltip: 'Открыть сессию',
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                );
+                try {
+                  final sessionService = SessionService();
+                  final session = await sessionService.getSessions(widget.sessionId!);
+                  if (!mounted) return;
+                  Navigator.pop(context); // close loading
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SessionScreen(session: session)),
+                  );
+                } catch (e) {
+                  if (mounted) Navigator.pop(context);
+                  messenger.showSnackBar(SnackBar(content: Text('Ошибка открытия сессии: $e')));
+                }
+              },
+            ),
+        ],
       ),
-      child: Container(
-        decoration: const BoxDecoration(
+      body: Container(
+        decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/stats_widget/background.png'),
             fit: BoxFit.cover,
           ),
         ),
-      child: Column(
-        children: [
-
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Карточка Силы
-                    AbilitiesRow(
-                      character: character,
-                      selectedAbility: selectedAbility,
-                      onAbilityTap: (ability) {
-                        setState(() {
-                          selectedAbility = ability;
-                          if (ability != null) {
-                            selectedSkillFilter = _getFirstSkillForAbility(ability);
-                          } else {
-                            selectedSkillFilter = null;
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    // Пассивная внимательность
-                    _buildPassivePerceptionSection(context),
-                    const SizedBox(height: 24),
-                    // Навыки
-                    _buildSkillsSection(context),
-                  ],
-                ),
-              ),
+        child: Container(
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/stats_widget/background.png'),
+              fit: BoxFit.cover,
             ),
           ),
-        ],
+          child: Column(
+            children: [
+
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Карточка Силы
+                        AbilitiesRow(
+                          character: character,
+                          selectedAbility: selectedAbility,
+                          onAbilityTap: (ability) {
+                            setState(() {
+                              selectedAbility = ability;
+                              if (ability != null) {
+                                selectedSkillFilter = _getFirstSkillForAbility(ability);
+                              } else {
+                                selectedSkillFilter = null;
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        // Пассивная внимательность
+                        _buildPassivePerceptionSection(context),
+                        const SizedBox(height: 24),
+                        // Навыки
+                        _buildSkillsSection(context),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -192,25 +231,24 @@ class _CharacterScreenState extends State<CharacterScreen> {
                     minHeight: 32,
                     minWidth: 32,
                   ),
-                  onPressed: () async {
-                    if (_isEditingSkills) {
-                      // Сохраняем на Firebase
-                      try {
-                        final firestoreService = FirestoreService();
-                        final userId = FirebaseAuth.instance.currentUser!.uid;
-                        await firestoreService.saveCharacter(userId, character);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Навыки сохранены')),
-                          );
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Ошибка: $e')),
-                          );
-                        }
-                      }
+                   onPressed: () async {
+                     if (_isEditingSkills) {
+                       // Сохраняем на Firebase
+                       final messenger = ScaffoldMessenger.of(context);
+                       try {
+                         final firestoreService = FirestoreService();
+                         final userId = FirebaseAuth.instance.currentUser!.uid;
+                         await firestoreService.saveCharacter(userId, character);
+                         if (!mounted) return;
+                         messenger.showSnackBar(
+                           const SnackBar(content: Text('Навыки сохранены')),
+                         );
+                       } catch (e) {
+                         if (!mounted) return;
+                         messenger.showSnackBar(
+                           SnackBar(content: Text('Ошибка: $e')),
+                         );
+                       }
                     }
                     setState(() => _isEditingSkills = !_isEditingSkills);
                   },

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/character.dart';
+import '../models/session.dart';
 import '../models/inventory.dart';
 import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
@@ -16,11 +17,14 @@ import 'session_home_screen.dart';
 class MainNavigationScreen extends StatefulWidget {
   final Character character;
   final Inventory inventory;
+  // Если экран открыт из сессии — передаём сессию, чтобы можно было вернуться
+  final Session? originSession;
 
   const MainNavigationScreen({
     super.key,
     required this.character,
     required this.inventory,
+    this.originSession,
   });
 
   @override
@@ -320,6 +324,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 return;
               }
 
+              // capture navigator and messenger before async gap
+              final navigator = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+
               try {
                 final session = await _sessionService.createSession(
                   name: nameController.text,
@@ -331,7 +339,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
 
                 if (mounted) {
-                  Navigator.pop(context);
+                  navigator.pop();
                   debugPrint('✅ Dialog создания закрыт, перенаправляю на DM');
 
                   // Прямой переход на DM экран (без диалога с кодом)
@@ -343,7 +351,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(content: Text('Ошибка: $e')),
                   );
                 }
@@ -407,17 +415,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               }
 
               try {
+                // capture navigator before async gap
+                final navigator = Navigator.of(context);
+
                 final session = await _sessionService.joinSessionByCode(
                   codeController.text,
                 );
 
                 if (mounted) {
-                  Navigator.pop(context);
+                  navigator.pop();
                   final currentUser = fb.FirebaseAuth.instance.currentUser;
                   if (currentUser != null) {
                     // Перейти в SessionHomeScreen
-                    Navigator.push(
-                      context,
+                    navigator.push(
                       MaterialPageRoute(
                         builder: (context) => SessionHomeScreen(
                           session: session,
@@ -452,6 +462,32 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         title: Text(currentCharacter.name),
         centerTitle: true,
         actions: [
+          // Кнопка возврата в сессию, если MainNavigationScreen открыт из сессии
+          if (widget.originSession != null)
+            IconButton(
+              icon: const Icon(Icons.meeting_room),
+              tooltip: 'Вернуться в сессию',
+              onPressed: () {
+                final currentUser = fb.FirebaseAuth.instance.currentUser;
+                if (currentUser == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Пользователь не авторизован')));
+                  return;
+                }
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SessionHomeScreen(
+                      session: widget.originSession!,
+                      playerCharacter: currentCharacter,
+                      currentUserId: currentUser.uid,
+                      currentUserDisplayName: currentUser.displayName ?? 'Player',
+                    ),
+                  ),
+                );
+              },
+            ),
+
           PopupMenuButton(
             itemBuilder: (context) => [
               PopupMenuItem(

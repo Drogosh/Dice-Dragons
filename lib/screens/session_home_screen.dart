@@ -8,6 +8,10 @@ import '../services/presence_service.dart';
 import 'session_dm_screen.dart';
 import 'session_player_screen.dart';
 import 'session_info_screen.dart';
+import 'character_screen.dart';
+import 'character_selection_screen.dart';
+import '../models/inventory.dart';
+import 'main_navigation_screen.dart';
 
 class SessionHomeScreen extends StatefulWidget {
   final Session session;
@@ -85,8 +89,56 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text('Сессия: ${liveSession.name} (${liveSession.getMemberCount()} участников)'),
-            elevation: 0,
+              title: Text('Сессия: ${liveSession.name} (${liveSession.getMemberCount()} участников)'),
+                elevation: 0,
+                actions: [
+                  // Кнопка открытия собственного персонажа (если передан)
+                  if (widget.playerCharacter != null)
+                        IconButton(
+                          icon: const Icon(Icons.person_search),
+                          tooltip: 'Открыть мой персонаж',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MainNavigationScreen(
+                                  character: widget.playerCharacter!,
+                                  inventory: Inventory(),
+                                  originSession: liveSession,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                  // Кнопка открытия персонажа DM (если передан)
+                  if (widget.dmCharacter != null)
+                        IconButton(
+                          icon: const Icon(Icons.shield),
+                          tooltip: 'Открыть персонажа DM',
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => MainNavigationScreen(
+                                  character: widget.dmCharacter!,
+                                  inventory: Inventory(),
+                                  originSession: liveSession,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                  // Кнопка открытия списка персонажей
+                  IconButton(
+                    icon: const Icon(Icons.list),
+                    tooltip: 'Список персонажей',
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CharacterSelectionScreen()));
+                    },
+                  ),
+                ],
           ),
           body: IndexedStack(
             index: _selectedTabIndex,

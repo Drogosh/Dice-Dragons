@@ -30,7 +30,6 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
   late RequestType selectedType;
   String selectedDmMode = 'normal';
   bool _rtdbInitialized = false;
-  late Future<void> _initFuture;
 
   final formulaController = TextEditingController();
   final targetAcController = TextEditingController();
@@ -48,9 +47,9 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
     selectedDmAbility = null;
 
     // Инициализировать сессию в RTDB ВО ВРЕМЯ initState
-    debugPrint('🎯 SessionDMScreen: создаю Future инициализации');
-    _initFuture = _initializeRTDBSession();
-    debugPrint('🎯 SessionDMScreen: Future создан');
+    debugPrint('🎯 SessionDMScreen: запускаю инициализацию RTDB');
+    _initializeRTDBSession();
+    debugPrint('🎯 SessionDMScreen: инициализация RTDB запущена');
   }
 
   /// Инициализировать сессию в RTDB (запись dmId для авторизации)
@@ -284,13 +283,14 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
 
                       // Формула
                       const Text('Формула:', style: TextStyle(fontWeight: FontWeight.bold)),
-                      TextField(
-                        controller: formulaController,
-                        decoration: const InputDecoration(
-                          hintText: '1d20, 2d6+3, и т.д.',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
+                       TextField(
+                         controller: formulaController,
+                         onChanged: (v) => _updateFormula(),
+                         decoration: const InputDecoration(
+                           hintText: '1d20, 2d6+3, и т.д.',
+                           border: OutlineInputBorder(),
+                         ),
+                       ),
                       const SizedBox(height: 16),
 
                       // Target AC (только для атак)

@@ -33,9 +33,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
     super.initState();
     inventory = widget.inventory;
     character = widget.character;
-    print('✅ InventoryScreen.initState()');
-    print('   inventory items: ${inventory.getItemCount()}');
-    print('   onItemChanged callback: ${widget.onItemChanged != null ? "ДА ✓" : "НЕТ ✗"}');
+    debugPrint('✅ InventoryScreen.initState()');
+    debugPrint('   inventory items: ${inventory.getItemCount()}');
+    debugPrint('   onItemChanged callback: ${widget.onItemChanged != null ? "ДА ✓" : "НЕТ ✗"}');
   }
 
 
@@ -126,9 +126,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
      }
 
       setState(() {});
-      print('📞 Вызываю callback сохранения после изменения предмета');
+      debugPrint('📞 Вызываю callback сохранения после изменения предмета');
       widget.onItemChanged?.call();
-      print('✅ Callback вызван');
+      debugPrint('✅ Callback вызван');
    }
 
   bool _isItemEquipped(Item item) {
@@ -493,7 +493,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                  // Закрываем диалог
                  Navigator.pop(context);
                  // Обновляем предмет с автообновлением UI
-                 this.setState(() {
+                   this.setState(() {
                    inventory.items[index] = Item(
                      name: nameController.text,
                      type: selectedType,
@@ -514,10 +514,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                          ? selectedArmorType
                          : null,
                    );
-                  });
-                  print('📞 Вызываю callback сохранения после редактирования');
-                  widget.onItemChanged?.call();
-                  print('✅ Callback вызван');
+                   });
+                   debugPrint('📞 Вызываю callback сохранения после редактирования');
+                   widget.onItemChanged?.call();
+                   debugPrint('✅ Callback вызван');
                   // Показываем сообщение об успехе
                   ScaffoldMessenger.of(context).showSnackBar(
                    SnackBar(
@@ -704,9 +704,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 setState(() {
                                   inventory.removeItemAt(actualIndex);
                                 });
-                                print('📞 Вызываю callback сохранения после удаления');
+                                debugPrint('📞 Вызываю callback сохранения после удаления');
                                 widget.onItemChanged?.call();
-                                print('✅ Callback вызван');
+                                debugPrint('✅ Callback вызван');
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text('$itemName удален из инвентаря'),

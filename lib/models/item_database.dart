@@ -95,16 +95,16 @@ class ItemDatabase extends ChangeNotifier {
         items.add(Item.fromMap(item as Map<String, dynamic>));
       }
       notifyListeners();
-      print('✅ База предметов загружена (${items.length} предметов)');
+      debugPrint('✅ База предметов загружена (${items.length} предметов)');
     } catch (e) {
-      print('❌ Ошибка загрузки базы предметов: $e');
+      debugPrint('❌ Ошибка загрузки базы предметов: $e');
     }
   }
 
   /// Сохранить базу предметов локально (внутренняя логика)
   void _saveDatabase() {
     // Будет вызвано из StorageService
-    print('💾 ItemDatabase._saveDatabase(): ${items.length} предметов');
+    debugPrint('💾 ItemDatabase._saveDatabase(): ${items.length} предметов');
   }
 }
 

@@ -6,6 +6,7 @@ import 'dart:math';
 import '../models/session.dart';
 import '../models/request.dart';
 import '../models/character.dart';
+import 'firestore_character_service.dart';
 
 class SessionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -280,6 +281,20 @@ class SessionService {
     } catch (e) {
       debugPrint('❌ Error getting user sessions: $e');
       return [];
+    }
+  }
+
+  /// Загрузить первого персонажа текущего пользователя (если есть)
+  Future<Character?> loadUserCharacter() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return null;
+      final chars = await FirestoreCharacterService().getUserCharacters(user.uid);
+      if (chars.isNotEmpty) return chars.first;
+      return null;
+    } catch (e) {
+      debugPrint('⚠️ Error loading user character: $e');
+      return null;
     }
   }
 

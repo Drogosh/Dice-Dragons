@@ -1,4 +1,6 @@
 // Примеры использования Hive Storage Service
+// Примеры, которые не являются частью production-кода
+// ignore_for_file: uri_does_not_exist, undefined_function, undefined_identifier, avoid_print
 
 import 'models/character.dart';
 import 'models/item.dart';

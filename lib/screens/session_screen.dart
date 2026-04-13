@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
 import '../services/presence_service.dart';
+import '../services/firestore_service.dart';
+import 'character_screen.dart';
+import 'character_selection_screen.dart';
+import '../models/inventory.dart';
+import 'main_navigation_screen.dart';
+import 'character_selection_screen.dart';
 
 class SessionScreen extends StatefulWidget {
   final Session session;
@@ -50,6 +57,69 @@ class _SessionScreenState extends State<SessionScreen> {
         title: Text(_currentSession.name),
         backgroundColor: Colors.grey[800],
         actions: [
+          // Кнопка быстрого открытия персонажа текущего пользователя (если привязан)
+          IconButton(
+            icon: const Icon(Icons.person_search),
+            tooltip: 'Открыть мой персонаж',
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              if (user == null) {
+                messenger.showSnackBar(const SnackBar(content: Text('Пользователь не авторизован')));
+                return;
+              }
+
+              final member = _currentSession.members[user.uid];
+              var charId = member?.characterId;
+
+              // Попытка загрузить первый персонаж пользователя как fallback
+              if (charId == null) {
+                try {
+                  final sessionService = SessionService();
+                  final char = await sessionService.loadUserCharacter();
+                  if (char != null) {
+                    if (!mounted) return;
+                    navigator.push(MaterialPageRoute(builder: (_) => MainNavigationScreen(character: char, inventory: Inventory(), originSession: _currentSession)));
+                    return;
+                  }
+                } catch (e) {
+                  debugPrint('Ошибка загрузки локального персонажа: $e');
+                }
+                messenger.showSnackBar(const SnackBar(content: Text('У вас не привязан персонаж в этой сессии')));
+                return;
+              }
+
+              // Загружаем персонажа по ID
+              try {
+                final firestore = FirestoreService();
+                final char = await firestore.getCharacterById(user.uid, charId);
+                if (char == null) {
+                  messenger.showSnackBar(const SnackBar(content: Text('Персонаж не найден')));
+                  return;
+                }
+                if (!mounted) return;
+                navigator.push(MaterialPageRoute(builder: (_) => MainNavigationScreen(character: char, inventory: Inventory(), originSession: _currentSession)));
+              } catch (e) {
+                if (!mounted) return;
+                messenger.showSnackBar(SnackBar(content: Text('Ошибка: $e')));
+              }
+            },
+          ),
+
+          // Дополнительная кнопка: открыть список персонажей (для DM и игроков)
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Открыть список персонажей',
+            onPressed: () {
+              // Открываем общий экран выбора персонажа
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CharacterSelectionScreen()),
+              );
+            },
+          ),
           if (_currentSession.isDM(_currentSession.dmId))
             PopupMenuButton(
               itemBuilder: (context) => [
@@ -358,13 +428,25 @@ class _SessionScreenState extends State<SessionScreen> {
                                 ],
                               ),
                             ),
-                            Text(
-                              _formatDateTime(player.joinedAt),
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 12,
-                              ),
-                            ),
+                             Row(
+                               children: [
+                                 Text(
+                                   _formatDateTime(player.joinedAt),
+                                   style: TextStyle(
+                                     color: Colors.grey[500],
+                                     fontSize: 12,
+                                   ),
+                                 ),
+                                 const SizedBox(width: 8),
+                                 if (player.characterId != null)
+                                   IconButton(
+                                     icon: const Icon(Icons.person),
+                                     color: Colors.white,
+                                     tooltip: 'Открыть персонажа',
+                                     onPressed: () => _openCharacter(player.uid, player.characterId!),
+                                   ),
+                               ],
+                             ),
                           ],
                         ),
                       ),
@@ -461,6 +543,39 @@ class _SessionScreenState extends State<SessionScreen> {
       return '${difference.inHours} ч назад';
     } else {
       return '${dateTime.day}.${dateTime.month}.${dateTime.year}';
+    }
+  }
+
+  /// Открыть экран персонажа по ownerUid и charId
+  Future<void> _openCharacter(String ownerUid, String charId) async {
+    final messenger = ScaffoldMessenger.of(context);
+    // Показываем индикатор загрузки
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final firestore = FirestoreService();
+      final character = await firestore.getCharacterById(ownerUid, charId);
+      if (!mounted) return;
+      Navigator.pop(context); // закрываем диалог загрузки
+
+      if (character == null) {
+        messenger.showSnackBar(const SnackBar(content: Text('Персонаж не найден')));
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(character: character, inventory: Inventory(), originSession: _currentSession),
+        ),
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      messenger.showSnackBar(SnackBar(content: Text('Ошибка: $e')));
     }
   }
 

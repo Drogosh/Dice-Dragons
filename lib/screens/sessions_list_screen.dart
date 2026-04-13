@@ -4,9 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/session.dart';
 import '../models/character.dart';
 import '../services/session_service.dart';
-import '../services/realtime_requests_service.dart';
-import '../services/realtime_responses_service.dart';
-import '../services/presence_service.dart';
+// Removed unused imports
 import 'session_home_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
@@ -28,7 +26,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showCreateSessionDialog() {
-    print('🔥 Открываю диалог создания сессии');
+    debugPrint('🔥 Открываю диалог создания сессии');
     final nameController = TextEditingController();
     final maxPlayersController = TextEditingController();
     final campaignController = TextEditingController();
@@ -106,6 +104,9 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
               try {
                 setState(() => _isLoading = true);
 
+                // capture navigator before async gap
+                final navigator = Navigator.of(context);
+
                 final session = await _sessionService.createSession(
                   name: nameController.text,
                   campaignName:
@@ -116,7 +117,8 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                 debugPrint('✅✅✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
 
                 // Закрыть диалог создания и сразу перейти на DM экран
-                Navigator.pop(context);
+                if (!mounted) return;
+                navigator.pop();
                 debugPrint('✅ Dialog закрыт');
 
                 // Прямой переход на DM экран (без промежуточного диалога)
@@ -130,7 +132,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   }
                 });
               } catch (e) {
-                print('❌ Ошибка создания сессии: $e');
+                debugPrint('❌ Ошибка создания сессии: $e');
                 if (mounted) {
                   setState(() => _errorMessage = 'Ошибка: $e');
                 }
@@ -248,12 +250,14 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
               try {
                 setState(() => _isLoading = true);
 
+                // capture navigator before async gap
+                final navigator = Navigator.of(context);
+
                 final session = await _sessionService.joinSessionByCode(
                   codeController.text,
                 );
-
                 if (mounted) {
-                  Navigator.pop(context);
+                  navigator.pop();
 
                   // Перейти в сессию
                   _navigateToSession(session);

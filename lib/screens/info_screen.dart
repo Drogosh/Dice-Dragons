@@ -21,13 +21,13 @@ class _InfoScreenState extends State<InfoScreen> {
   void initState() {
     super.initState();
     // Пересчитываем HP при открытии экрана
-    print('📖 InfoScreen.initState()');
+    debugPrint('📖 InfoScreen.initState()');
     final recalculatedHP = widget.character.recalculateHP();
     displayedHP = recalculatedHP;
 
     // Если HP отличается, обновляем в character
     if (recalculatedHP != widget.character.hp) {
-      print('   ⚠️  HP изменено с ${widget.character.hp} на $recalculatedHP');
+      debugPrint('   ⚠️  HP изменено с ${widget.character.hp} на $recalculatedHP');
       widget.character.hp = recalculatedHP;
     }
   }
