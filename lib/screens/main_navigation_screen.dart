@@ -12,6 +12,7 @@ import 'info_screen.dart';
 import 'spells_screen.dart';
 import 'notes_screen.dart';
 import 'session_screen.dart';
+import 'session_dm_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final Character character;
@@ -328,11 +329,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   maxPlayers: int.tryParse(maxPlayersController.text) ?? 0,
                 );
 
+                debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
+
                 if (mounted) {
                   Navigator.pop(context);
+                  debugPrint('✅ Dialog создания закрыт, перенаправляю на DM');
 
-                  // Показать код присоединения
-                  _showJoinCodeDialog(session);
+                  // Прямой переход на DM экран (без диалога с кодом)
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (mounted) {
+                      _navigateToDMScreen(session);
+                    }
+                  });
                 }
               } catch (e) {
                 if (mounted) {
@@ -539,6 +547,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Заметки',
           ),
         ],
+      ),
+    );
+  }
+
+  void _navigateToDMScreen(dynamic session) {
+    debugPrint('🚀 Навигация на экран DM: ${session.joinCode}');
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SessionDMScreen(
+          session: session,
+          sessionService: _sessionService,
+          dmCharacter: currentCharacter,
+        ),
       ),
     );
   }

@@ -96,6 +96,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              debugPrint('🔥🔥🔥 Начало создания сессии - нажата кнопка Создать');
               if (nameController.text.isEmpty) {
                 setState(() => _errorMessage = 'Введите название сессии');
                 return;
@@ -111,15 +112,20 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   maxPlayers: int.tryParse(maxPlayersController.text) ?? 0,
                 );
 
-                print('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
+                debugPrint('✅✅✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
 
-                // Закрыть диалог создания
+                // Закрыть диалог создания и сразу перейти на DM экран
                 Navigator.pop(context);
+                debugPrint('✅ Dialog закрыт');
 
-                // Показать диалог с кодом
+                // Прямой переход на DM экран (без промежуточного диалога)
+                debugPrint('✅ Готов к навигации на DM');
                 Future.delayed(const Duration(milliseconds: 300), () {
+                  debugPrint('✅ Delayed callback вызван, вызываю _navigateToDMScreen');
                   if (mounted) {
-                    _showJoinCodeDialog(session);
+                    _navigateToDMScreen(session);
+                  } else {
+                    debugPrint('❌ Widget не mounted!');
                   }
                 });
               } catch (e) {
@@ -140,89 +146,10 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
     );
   }
 
-  void _showJoinCodeDialog(Session session) {
-    print('🔥🔥🔥 ВЫЗЫВАЮ _showJoinCodeDialog! Код: ${session.joinCode}');
 
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          print('🔥🔥🔥 Строю AlertDialog');
-          return AlertDialog(
-            backgroundColor: Colors.grey[850],
-            title: const Text(
-              'Сессия создана!',
-              style: TextStyle(color: Colors.white),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Поделитесь этим кодом с игроками:',
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[900],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    session.joinCode,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Название: ${session.name}',
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-                if (session.campaignName != null)
-                  Text(
-                    'Кампания: ${session.campaignName}',
-                    style: TextStyle(color: Colors.grey[400]),
-                  ),
-                Text(
-                  'Игроки: ${session.getPlayers().length}${session.maxPlayers > 0 ? '/${session.maxPlayers}' : ''}',
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  print('👉 Нажата кнопка "Закрыть"');
-                  Navigator.pop(dialogContext);
-                },
-                child: const Text('Закрыть'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  print('👉👉👉 Нажата кнопка "К сессии (DM)"!!!');
-                  Navigator.pop(dialogContext);
-                  _navigateToDMScreen(session);
-                },
-                child: const Text('К сессии (DM)'),
-              ),
-            ],
-          );
-        },
-      );
-      print('🔥🔥🔥 showDialog вызван');
-    } catch (e) {
-      print('🔥🔥🔥 ОШИБКА в _showJoinCodeDialog: $e');
-    }
-  }
 
   void _navigateToDMScreen(Session session) {
+    debugPrint('🚀🚀🚀 _navigateToDMScreen вызван для сессии: ${session.id}, код: ${session.joinCode}');
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -233,6 +160,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
         ),
       ),
     );
+    debugPrint('🚀🚀🚀 Navigator.push вызван');
   }
 
   void _showJoinSessionDialog() {
@@ -246,32 +174,34 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
           'Присоединиться к сессии',
           style: TextStyle(color: Colors.white),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Введите код присоединения:',
-              style: TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: codeController,
-              style: const TextStyle(color: Colors.white),
-              inputFormatters: [
-                UpperCaseTextFormatter(),
-              ],
-              decoration: InputDecoration(
-                hintText: 'например: AB12CD',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                filled: true,
-                fillColor: Colors.grey[700],
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Введите код присоединения:',
+                style: TextStyle(color: Colors.white),
               ),
-              maxLength: 6,
-            ),
-          ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: codeController,
+                style: const TextStyle(color: Colors.white),
+                inputFormatters: [
+                  UpperCaseTextFormatter(),
+                ],
+                decoration: InputDecoration(
+                  hintText: 'например: AB12CD',
+                  hintStyle: TextStyle(color: Colors.grey[600]),
+                  filled: true,
+                  fillColor: Colors.grey[700],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                maxLength: 6,
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -359,81 +289,78 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                 ),
               ),
 
-            // Контент
+            // Контент — используем ListView чтобы обеспечить корректную прокрутку
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Заголовок
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Управление Сессиями',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                children: [
+                  // Заголовок
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Управление Сессиями',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(height: 24),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Кнопки
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _showCreateSessionDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Создать Сессию (DM)'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.blue[700],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _showJoinSessionDialog,
-                      icon: const Icon(Icons.login),
-                      label: const Text('Присоединиться к Сессии'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.green[700],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Информация
-                    Container(
+                  // Кнопки
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _showCreateSessionDialog,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Создать Сессию (DM)'),
+                    style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[800],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Что это?',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Сессии позволяют нескольким игрокам присоединиться '
-                            'к одной игре. '
-                            'DM (ведущий) создаёт сессию и делится кодом. '
-                            'Игроки вводят код для присоединения.',
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
+                      backgroundColor: Colors.blue[700],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _showJoinSessionDialog,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Присоединиться к Сессии'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      backgroundColor: Colors.green[700],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Информация
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[800],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Что это?',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Сессии позволяют нескольким игрокам присоединиться '
+                          'к одной игре. '
+                          'DM (ведущий) создаёт сессию и делится кодом. '
+                          'Игроки вводят код для присоединения.',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
