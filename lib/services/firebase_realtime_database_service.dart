@@ -15,6 +15,9 @@ class FirebaseRealtimeDatabaseService {
   static const String _sessionsMetaPath = 'sessions_metadata';
   static const String _requestsPath = 'requests';
   static const String _presencePath = 'presence';
+  static const String _liveSessionsPath = 'liveSessions';
+  static const String _liveRequestsPath = 'requests';
+  static const String _liveResponsesPath = 'responses';
 
   /// Инициализация RTDB
   Future<void> initialize() async {
@@ -337,33 +340,106 @@ class FirebaseRealtimeDatabaseService {
     }
   }
 
-  // ============ PRESENCE (АКТИВНОСТЬ) ============
+  // ============ LIVE SESSIONS (ЗАПРОСЫ И ОТВЕТЫ) ============
 
-  /// Установить статус присутствия пользователя
-  Future<void> setPresence(String sessionId, String userId, bool isOnline) async {
+  /// Создать live запрос в активной сессии
+  Future<void> createLiveRequest({
+    required String sessionId,
+    required String requestId,
+    required String dmId,
+    required String characterName,
+    required String formula,
+    required String type,
+    int? targetAc,
+    String? note,
+    required String audience,
+    required List<String> targetUids,
+  }) async {
     try {
-      final ref = _database.ref('$_presencePath/$sessionId/$userId');
+      final ref = _database.ref('$_liveSessionsPath/$sessionId/$_liveRequestsPath/$requestId');
 
-      if (isOnline) {
-        await ref.set({
-          'userId': userId,
-          'lastSeen': DateTime.now().millisecondsSinceEpoch,
-          'online': true,
-        });
-      } else {
-        await ref.remove();
-      }
+      final requestData = {
+        'id': requestId,
+        'dmId': dmId,
+        'characterName': characterName,
+        'formula': formula,
+        'type': type,
+        'targetAc': targetAc,
+        'note': note,
+        'status': 'open',
+        'audience': audience,
+        'targetUids': targetUids,
+        'createdAt': DateTime.now().millisecondsSinceEpoch,
+        'completedAt': null,
+      };
 
-      debugPrint('✅ Статус присутствия обновлен');
+      await ref.set(requestData);
+      debugPrint('✅ Live запрос создан: $requestId');
     } catch (e) {
-      debugPrint('❌ Ошибка обновления статуса присутствия: $e');
+      debugPrint('❌ Ошибка создания live запроса: $e');
+      rethrow;
     }
   }
 
-  /// Stream присутствия в сессии
-  Stream<Map<String, bool>> watchSessionPresence(String sessionId) {
+  /// Watch live запросы сессии
+  Stream<List<Map<String, dynamic>>> watchLiveRequests(String sessionId) {
     return _database
-        .ref('$_presencePath/$sessionId')
+        .ref('$_liveSessionsPath/$sessionId/$_liveRequestsPath')
+        .onValue
+        .map((event) {
+          if (!event.snapshot.exists) {
+            return [];
+          }
+
+          final data = event.snapshot.value as Map?;
+          if (data == null) return [];
+
+          return data.entries
+              .map((e) => {...(e.value as Map), 'id': e.key})
+              .cast<Map<String, dynamic>>()
+              .toList();
+        });
+  }
+
+  /// Добавить ответ игрока на запрос
+  Future<void> addPlayerResponse({
+    required String sessionId,
+    required String requestId,
+    required String playerId,
+    required String playerName,
+    required dynamic result,
+    int? rollResult,
+    bool? success,
+  }) async {
+    try {
+      final ref = _database.ref(
+        '$_liveSessionsPath/$sessionId/$_liveResponsesPath/$requestId/$playerId',
+      );
+
+      final responseData = {
+        'playerId': playerId,
+        'playerName': playerName,
+        'result': result,
+        'rollResult': rollResult,
+        'success': success,
+        'respondedAt': DateTime.now().millisecondsSinceEpoch,
+      };
+
+      await ref.set(responseData);
+      debugPrint('✅ Ответ игрока добавлен: $playerId');
+    } catch (e) {
+      debugPrint('❌ Ошибка добавления ответа: $e');
+      rethrow;
+    }
+  }
+
+  /// Watch ответы на запрос
+  Stream<Map<String, dynamic>> watchRequestResponses(
+    String sessionId,
+    String requestId,
+  ) {
+    return _database
+        .ref('$_liveSessionsPath/$sessionId/$_liveResponsesPath/$requestId')
         .onValue
         .map((event) {
           if (!event.snapshot.exists) {
@@ -374,9 +450,85 @@ class FirebaseRealtimeDatabaseService {
           if (data == null) return {};
 
           return Map.fromEntries(
-            data.entries.map((e) => MapEntry(e.key, true)),
+            data.entries.map((e) => MapEntry(e.key, e.value as Map)),
           );
         });
+  }
+
+  /// Получить все ответы на запрос
+  Future<Map<String, dynamic>> getRequestResponses(
+    String sessionId,
+    String requestId,
+  ) async {
+    try {
+      final snapshot = await _database
+          .ref('$_liveSessionsPath/$sessionId/$_liveResponsesPath/$requestId')
+          .get();
+
+      if (!snapshot.exists) return {};
+
+      final data = snapshot.value as Map?;
+      if (data == null) return {};
+
+      return Map.fromEntries(
+        data.entries.map((e) => MapEntry(e.key, e.value as Map)),
+      );
+    } catch (e) {
+      debugPrint('❌ Ошибка получения ответов: $e');
+      return {};
+    }
+  }
+
+  /// Закрыть live запрос
+  Future<void> closeLiveRequest(String sessionId, String requestId) async {
+    try {
+      await _database
+          .ref('$_liveSessionsPath/$sessionId/$_liveRequestsPath/$requestId/status')
+          .set('closed');
+
+      await _database
+          .ref('$_liveSessionsPath/$sessionId/$_liveRequestsPath/$requestId/completedAt')
+          .set(DateTime.now().millisecondsSinceEpoch);
+
+      debugPrint('✅ Live запрос закрыт: $requestId');
+    } catch (e) {
+      debugPrint('❌ Ошибка закрытия live запроса: $e');
+      rethrow;
+    }
+  }
+
+  /// Удалить live запрос
+  Future<void> deleteLiveRequest(String sessionId, String requestId) async {
+    try {
+      // Удаляем ответы
+      await _database
+          .ref('$_liveSessionsPath/$sessionId/$_liveResponsesPath/$requestId')
+          .remove();
+
+      // Удаляем запрос
+      await _database
+          .ref('$_liveSessionsPath/$sessionId/$_liveRequestsPath/$requestId')
+          .remove();
+
+      debugPrint('✅ Live запрос удален: $requestId');
+    } catch (e) {
+      debugPrint('❌ Ошибка удаления live запроса: $e');
+      rethrow;
+    }
+  }
+
+  /// Очистить все live запросы сессии
+  Future<void> clearLiveSession(String sessionId) async {
+    try {
+      await _database
+          .ref('$_liveSessionsPath/$sessionId')
+          .remove();
+
+      debugPrint('✅ Live сессия очищена: $sessionId');
+    } catch (e) {
+      debugPrint('❌ Ошибка очистки live сессии: $e');
+      rethrow;
+    }
   }
 
   // ============ СЛУЖЕБНЫЕ МЕТОДЫ ============

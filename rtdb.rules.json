@@ -66,15 +66,60 @@
       }
     },
 
-    // ===== LIVE SESSIONS (для совместимости) =====
+    // ===== LIVE SESSIONS (активные сессии с запросами и ответами) =====
     "liveSessions": {
       "$sessionId": {
+        ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+        ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+        // Запросы от DM
+        "requests": {
+          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+          ".write": "root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+          "$requestId": {
+            ".validate": "newData.hasChildren(['id', 'dmId', 'characterName', 'formula', 'type', 'status', 'createdAt'])",
+            "id": { ".validate": "newData.isString()" },
+            "dmId": { ".validate": "newData.isString()" },
+            "characterName": { ".validate": "newData.isString()" },
+            "formula": { ".validate": "newData.isString()" },
+            "type": { ".validate": "newData.isString()" },
+            "status": { ".validate": "newData.isString() && ['open', 'closed'].includes(newData.val())" },
+            "targetAc": { ".validate": "newData.isNumber() || newData.isNull()" },
+            "note": { ".validate": "newData.isString() || newData.isNull()" },
+            "audience": { ".validate": "newData.isString() && ['all', 'subset'].includes(newData.val())" },
+            "targetUids": { ".validate": "newData.isArray()" },
+            "createdAt": { ".validate": "newData.isNumber()" },
+            "completedAt": { ".validate": "newData.isNumber() || newData.isNull()" }
+          }
+        },
+
+        // Ответы игроков на запросы
+        "responses": {
+          ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists() || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+
+          "$requestId": {
+            "$playerId": {
+              ".write": "$playerId === auth.uid || root.child('sessions').child($sessionId).child('dmId').val() === auth.uid",
+              ".validate": "newData.hasChildren(['playerId', 'playerName', 'result', 'respondedAt'])",
+              "playerId": { ".validate": "newData.isString()" },
+              "playerName": { ".validate": "newData.isString()" },
+              "result": { ".validate": "newData.exists()" },
+              "rollResult": { ".validate": "newData.isNumber() || newData.isNull()" },
+              "success": { ".validate": "newData.isBoolean() || newData.isNull()" },
+              "respondedAt": { ".validate": "newData.isNumber()" }
+            }
+          }
+        },
+
+        // Presence (уже существует, оставляем для совместимости)
         "presence": {
           ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()",
           "$uid": {
             ".write": "auth.uid == $uid || root.child('sessions').child($sessionId).child('dmId').val() == auth.uid"
           }
         },
+
         "members": {
           "$uid": {
             ".read": "root.child('sessions').child($sessionId).child('members').child(auth.uid).exists()"
