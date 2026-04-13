@@ -66,7 +66,8 @@ class RealtimeResponsesService {
           return Map.fromEntries(
             data.entries.map((e) {
               try {
-                return MapEntry(e.key, RollResponse.fromMap(e.key, e.value as Map));
+                final mapData = Map<String, dynamic>.from(e.value as Map);
+                return MapEntry(e.key, RollResponse.fromMap(e.key, mapData));
               } catch (err) {
                 debugPrint('❌ Ошибка парсинга ответа: $err');
                 return null;
@@ -93,7 +94,8 @@ class RealtimeResponsesService {
 
       return Map.fromEntries(
         data.entries.map((e) {
-          return MapEntry(e.key, RollResponse.fromMap(e.key, e.value as Map));
+          final mapData = Map<String, dynamic>.from(e.value as Map);
+          return MapEntry(e.key, RollResponse.fromMap(e.key, mapData));
         }),
       );
     } catch (e) {
@@ -138,4 +140,6 @@ class RealtimeResponsesService {
     }
   }
 }
+
+
 
