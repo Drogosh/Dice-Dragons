@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../models/session.dart';
 import '../models/request.dart';
 import '../models/character.dart';
@@ -88,29 +89,37 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
   }
 
   Future<void> _createRequest() async {
-    if (widget.dmCharacter == null) {
+    if (selectedType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('❌ Ошибка: персонаж DM не найден')),
+        const SnackBar(content: Text('❌ Выберите тип запроса')),
       );
       return;
     }
 
+    if (widget.dmCharacter == null) {
+      debugPrint('⚠️  dmCharacter is null, allowing request creation without character');
+    }
+
     try {
+      debugPrint('🎲 _createRequest: type=$selectedType formula=${formulaController.text}');
+
       final request = Request(
         id: null,
         sessionId: widget.session.id,
         dmId: widget.session.dmId,
-        characterId: widget.dmCharacter!.id ?? '',
-        characterName: widget.dmCharacter!.name,
-        type: selectedType,
+        characterId: widget.dmCharacter?.id ?? '',
+        characterName: widget.dmCharacter?.name ?? 'DM',
+        type: selectedType!,
         formula: formulaController.text,
-        modifier: widget.dmCharacter!.getStrengthModifier(),
+        modifier: widget.dmCharacter?.getStrengthModifier() ?? 0,
         targetAc: int.tryParse(targetAcController.text),
         note: noteController.text.isNotEmpty ? noteController.text : null,
         status: 'open',
         audience: audience,
         targetUids: selectedPlayerUids.toList(),
       );
+
+      debugPrint('🎲 _createRequest: вызываю requestsService.createRequest()...');
 
       await widget.requestsService.createRequest(
         sessionId: widget.session.id,
@@ -120,15 +129,33 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ Запрос создан')),
+          const SnackBar(content: Text('✅ Запрос создан и отправлен в RTDB')),
         );
       }
 
       _resetForm();
+    } on FirebaseException catch (e) {
+      debugPrint('❌ FirebaseException: code=${e.code} message=${e.message}');
+      if (mounted) {
+        String errorMsg = 'Ошибка: ${e.message}';
+        if (e.code == 'permission-denied') {
+          errorMsg = '❌ Нет прав на запись в RTDB.\nПроверьте правила в Firebase Console → Realtime Database → Rules';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMsg),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
     } catch (e) {
+      debugPrint('❌ _createRequest ERROR: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ Ошибка: $e')),
+          SnackBar(
+            content: Text('❌ Ошибка создания запроса: $e'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }

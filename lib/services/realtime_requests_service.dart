@@ -1,4 +1,5 @@
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import '../models/request.dart';
 
@@ -46,11 +47,26 @@ class RealtimeRequestsService {
       };
 
       debugPrint('📝 createRequest payload: $requestData');
+      debugPrint('📍 createRequest path: ${newRef.path}');
 
-      await newRef.set(requestData);
+      // Добавим логирование прямо перед set
+      debugPrint('⏳ createRequest: вызываю newRef.set()...');
 
-      debugPrint('✅ createRequest SUCCESS: requestId=$requestId path=${newRef.path}');
+      await newRef.set(requestData).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('RTDB write timeout after 10s for requestId=$requestId');
+        },
+      );
+
+      debugPrint('✅ createRequest SUCCESS: requestId=$requestId');
       return requestId;
+    } on FirebaseException catch (e) {
+      debugPrint('❌ createRequest FirebaseException: code=${e.code} message=${e.message}');
+      if (e.code == 'permission-denied') {
+        debugPrint('⚠️  RTDB Permission Denied - проверьте правила в Firebase Console');
+      }
+      rethrow;
     } catch (e, stackTrace) {
       debugPrint('❌ createRequest ERROR: $e\nStackTrace: $stackTrace');
       rethrow;
