@@ -11,8 +11,7 @@ import 'inventory_screen.dart';
 import 'info_screen.dart';
 import 'spells_screen.dart';
 import 'notes_screen.dart';
-import 'session_screen.dart';
-import 'session_dm_screen.dart';
+import 'session_home_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final Character character;
@@ -357,52 +356,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  void _showJoinCodeDialog(dynamic session) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[850],
-        title: const Text(
-          'Сессия создана!',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Поделитесь этим кодом с игроками:',
-              style: TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[900],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                session.joinCode,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showJoinSessionDialog() {
     final codeController = TextEditingController();
 
@@ -460,14 +413,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
                 if (mounted) {
                   Navigator.pop(context);
-
-                  // Перейти в сессию
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => SessionScreen(session: session),
-                    ),
-                  );
+                  final currentUser = fb.FirebaseAuth.instance.currentUser;
+                  if (currentUser != null) {
+                    // Перейти в SessionHomeScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SessionHomeScreen(
+                          session: session,
+                          playerCharacter: currentCharacter,
+                          currentUserId: currentUser.uid,
+                          currentUserDisplayName: currentUser.displayName ?? 'Unknown',
+                        ),
+                      ),
+                    );
+                  }
                 }
               } catch (e) {
                 if (mounted) {
@@ -552,14 +512,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   void _navigateToDMScreen(dynamic session) {
-    debugPrint('🚀 Навигация на экран DM: ${session.joinCode}');
+    debugPrint('🚀 Навигация на SessionHomeScreen: ${session.joinCode}');
+    final currentUser = fb.FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Ошибка: пользователь не авторизирован')),
+      );
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SessionDMScreen(
+        builder: (context) => SessionHomeScreen(
           session: session,
-          sessionService: _sessionService,
           dmCharacter: currentCharacter,
+          currentUserId: currentUser.uid,
+          currentUserDisplayName: currentUser.displayName ?? 'DM',
         ),
       ),
     );

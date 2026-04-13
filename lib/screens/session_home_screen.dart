@@ -3,7 +3,6 @@ import '../models/session.dart';
 import '../models/character.dart';
 import '../services/realtime_requests_service.dart';
 import '../services/realtime_responses_service.dart';
-import '../services/presence_service.dart';
 import 'session_dm_screen.dart';
 import 'session_player_screen.dart';
 import 'session_info_screen.dart';
@@ -14,7 +13,6 @@ class SessionHomeScreen extends StatefulWidget {
   final Character? playerCharacter;
   final String currentUserId;
   final String currentUserDisplayName;
-  final PresenceService presenceService;
 
   const SessionHomeScreen({
     super.key,
@@ -23,7 +21,6 @@ class SessionHomeScreen extends StatefulWidget {
     this.playerCharacter,
     required this.currentUserId,
     required this.currentUserDisplayName,
-    required this.presenceService,
   });
 
   @override
@@ -41,40 +38,11 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
     _selectedTabIndex = 0;
     _requestsService = RealtimeRequestsService();
     _responsesService = RealtimeResponsesService();
-
-    // Установить presence при входе
-    _enterPresence();
-  }
-
-  Future<void> _enterPresence() async {
-    try {
-      await widget.presenceService.setPresence(
-        widget.session.id,
-        widget.currentUserId,
-        isOnline: true,
-      );
-    } catch (e) {
-      debugPrint('❌ Ошибка установки presence: $e');
-    }
   }
 
   @override
   void dispose() {
-    // Удалить presence при выходе
-    _exitPresence();
     super.dispose();
-  }
-
-  Future<void> _exitPresence() async {
-    try {
-      await widget.presenceService.setPresence(
-        widget.session.id,
-        widget.currentUserId,
-        isOnline: false,
-      );
-    } catch (e) {
-      debugPrint('❌ Ошибка удаления presence: $e');
-    }
   }
 
   @override
@@ -100,7 +68,7 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
               requestsService: _requestsService,
               responsesService: _responsesService,
             )
-          else
+          else if (widget.playerCharacter != null)
             SessionPlayerScreen(
               session: widget.session,
               currentPlayerId: widget.currentUserId,
@@ -108,7 +76,9 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
               playerCharacter: widget.playerCharacter,
               requestsService: _requestsService,
               responsesService: _responsesService,
-            ),
+            )
+          else
+            const Center(child: Text('❌ Ошибка: персонаж не найден')),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -132,4 +102,8 @@ class _SessionHomeScreenState extends State<SessionHomeScreen> {
     );
   }
 }
+
+
+
+
 

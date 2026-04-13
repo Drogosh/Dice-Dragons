@@ -192,33 +192,17 @@ class _RequestCardState extends State<RequestCard> {
                     const SizedBox(height: 16),
                     const Text('Режим броска:'),
                     const SizedBox(height: 8),
-                    RadioListTile<String>(
-                      title: const Text('Обычный'),
-                      value: 'normal',
-                      groupValue: selectedMode,
-                      onChanged: (value) {
+                    // Используем Segment control вместо RadioListTile
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(label: Text('Обычный'), value: 'normal'),
+                        ButtonSegment(label: Text('✓ ADV'), value: 'advantage'),
+                        ButtonSegment(label: Text('✗ DIS'), value: 'disadvantage'),
+                      ],
+                      selected: {selectedMode},
+                      onSelectionChanged: (newSelection) {
                         setState(() {
-                          selectedMode = value ?? 'normal';
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('✓ Преимущество'),
-                      value: 'advantage',
-                      groupValue: selectedMode,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMode = value ?? 'normal';
-                        });
-                      },
-                    ),
-                    RadioListTile<String>(
-                      title: const Text('✗ Помеха'),
-                      value: 'disadvantage',
-                      groupValue: selectedMode,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedMode = value ?? 'normal';
+                          selectedMode = newSelection.first;
                         });
                       },
                     ),
@@ -367,4 +351,5 @@ class _RequestCardState extends State<RequestCard> {
     }
   }
 }
+
 

@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../models/session.dart';
+import '../models/character.dart';
 import '../services/session_service.dart';
-import 'session_dm_screen.dart';
+import '../services/realtime_requests_service.dart';
+import '../services/realtime_responses_service.dart';
+import '../services/presence_service.dart';
+import 'session_home_screen.dart';
 
 class SessionsListScreen extends StatefulWidget {
   const SessionsListScreen({super.key});
@@ -20,10 +25,6 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   void initState() {
     super.initState();
     _sessionService = SessionService();
-  }
-
-  Future<void> _loadSessions() async {
-    // Метод для загрузки сессий (будет реализован в следующем файле)
   }
 
   void _showCreateSessionDialog() {
@@ -148,19 +149,48 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
 
 
 
-  void _navigateToDMScreen(Session session) {
+  void _navigateToDMScreen(Session session) async {
     debugPrint('🚀🚀🚀 _navigateToDMScreen вызван для сессии: ${session.id}, код: ${session.joinCode}');
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SessionDMScreen(
-          session: session,
-          sessionService: _sessionService,
-          dmCharacter: null, // DM персонаж можно получить отдельно если нужно
-        ),
-      ),
-    );
-    debugPrint('🚀🚀🚀 Navigator.push вызван');
+
+    try {
+      final currentUser = fb.FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Ошибка: пользователь не авторизирован')),
+        );
+        return;
+      }
+
+      // Загрузить персонаж DM
+      Character? dmCharacter;
+      try {
+        dmCharacter = await _sessionService.loadUserCharacter();
+      } catch (e) {
+        debugPrint('⚠️ Не удалось загрузить персонажа DM: $e');
+      }
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SessionHomeScreen(
+              session: session,
+              dmCharacter: dmCharacter,
+              currentUserId: currentUser.uid,
+              currentUserDisplayName: currentUser.displayName ?? 'DM',
+              presenceService: PresenceService(),
+            ),
+          ),
+        );
+      }
+      debugPrint('🚀🚀🚀 Navigator.push вызван');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Ошибка: $e')),
+        );
+      }
+    }
   }
 
   void _showJoinSessionDialog() {
@@ -244,13 +274,46 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
     );
   }
 
-  void _navigateToSession(Session session) {
-    // TODO: Навигация на экран сессии
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Присоединились к: ${session.name}'),
-      ),
-    );
+  void _navigateToSession(Session session) async {
+    try {
+      final currentUser = fb.FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('❌ Ошибка: пользователь не авторизирован')),
+        );
+        return;
+      }
+
+      // Загрузить персонажа текущего пользователя
+      Character? userCharacter;
+      try {
+        userCharacter = await _sessionService.loadUserCharacter();
+      } catch (e) {
+        debugPrint('⚠️ Не удалось загрузить персонажа: $e');
+      }
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SessionHomeScreen(
+              session: session,
+              dmCharacter: session.isDM(currentUser.uid) ? userCharacter : null,
+              playerCharacter: !session.isDM(currentUser.uid) ? userCharacter : null,
+              currentUserId: currentUser.uid,
+              currentUserDisplayName: currentUser.displayName ?? 'Unknown',
+              presenceService: PresenceService(),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Ошибка: $e')),
+        );
+      }
+    }
   }
 
   @override
