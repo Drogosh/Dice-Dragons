@@ -1,4 +1,4 @@
-import 'package:dice_and_dragons/models/character.dart';
+import 'character.dart';
 
 enum RequestType {
   initiative,  // Инициатива: 1d20 + DEX
@@ -266,4 +266,6 @@ class Request {
     );
   }
 }
+
+
 

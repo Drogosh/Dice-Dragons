@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:dice_and_dragons/models/character.dart';
-import 'package:dice_and_dragons/models/request.dart';
-import 'package:dice_and_dragons/services/session_service.dart';
+import '../models/character.dart';
+import '../models/request.dart';
+import '../services/session_service.dart';
 
 /// Виджет для создания и отправки запросов (requests) в сессию
 class RequestsPanel extends StatefulWidget {
@@ -317,6 +317,7 @@ class _RequestsPanelState extends State<RequestsPanel> {
     }
   }
 }
+
 
 
 

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:dice_and_dragons/models/request.dart';
-import 'package:dice_and_dragons/models/character.dart';
-import 'package:dice_and_dragons/services/session_service.dart';
+import '../models/request.dart';
+import '../models/character.dart';
+import '../services/session_service.dart';
 
 /// Примеры использования Request API для различных типов проверок
 class RequestExamples {
@@ -225,6 +225,7 @@ class RequestExamples {
     });
   }
 }
+
 
 
 
