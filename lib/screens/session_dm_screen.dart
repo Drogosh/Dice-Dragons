@@ -480,15 +480,8 @@ class _SessionDMScreenState extends State<SessionDMScreen> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    formulaController.dispose();
-    targetAcController.dispose();
-    noteController.dispose();
-    super.dispose();
-  }
 }
+
 
 
 
