@@ -192,17 +192,22 @@ class _RequestCardState extends State<RequestCard> {
                     const SizedBox(height: 16),
                     const Text('Режим броска:'),
                     const SizedBox(height: 8),
-                    // Используем Segment control вместо RadioListTile
-                    SegmentedButton<String>(
-                      segments: const [
-                        ButtonSegment(label: Text('Обычный'), value: 'normal'),
-                        ButtonSegment(label: Text('✓ ADV'), value: 'advantage'),
-                        ButtonSegment(label: Text('✗ DIS'), value: 'disadvantage'),
-                      ],
-                      selected: {selectedMode},
-                      onSelectionChanged: (newSelection) {
+                    // Две CheckboxListTile - взаимоисключающие
+                    CheckboxListTile(
+                      title: const Text('✓ Преимущество'),
+                      value: selectedMode == 'advantage',
+                      onChanged: (value) {
                         setState(() {
-                          selectedMode = newSelection.first;
+                          selectedMode = value ?? false ? 'advantage' : 'normal';
+                        });
+                      },
+                    ),
+                    CheckboxListTile(
+                      title: const Text('✗ Помеха'),
+                      value: selectedMode == 'disadvantage',
+                      onChanged: (value) {
+                        setState(() {
+                          selectedMode = value ?? false ? 'disadvantage' : 'normal';
                         });
                       },
                     ),
@@ -332,24 +337,26 @@ class _RequestCardState extends State<RequestCard> {
         }
 
       case RequestType.save:
-        // Для спасброска используется характеристика спасброска
+        // Для спасброска используется характеристика спасброска с proficiency
         if (abilityType == null) return 0;
         switch (abilityType) {
           case AbilityType.strength:
-            return character.getStrengthModifier();
+            return character.getStrengthSave();
           case AbilityType.dexterity:
-            return character.getDexterityModifier();
+            return character.getDexteritySave();
           case AbilityType.constitution:
-            return character.getConstitutionModifier();
+            return character.getConstitutionSave();
           case AbilityType.intelligence:
-            return character.getIntelligenceModifier();
+            return character.getIntelligenceSave();
           case AbilityType.wisdom:
-            return character.getWisdomModifier();
+            return character.getWisdomSave();
           case AbilityType.charisma:
-            return character.getCharismaModifier();
+            return character.getCharismaSave();
         }
     }
   }
 }
+
+
 
 
