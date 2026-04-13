@@ -27,7 +27,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showCreateSessionDialog() {
-    debugPrint('🔥 Открываю диалог создания сессии');
+    print('🔥 Открываю диалог создания сессии');
     final nameController = TextEditingController();
     final maxPlayersController = TextEditingController();
     final campaignController = TextEditingController();
@@ -111,7 +111,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   maxPlayers: int.tryParse(maxPlayersController.text) ?? 0,
                 );
 
-                debugPrint('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
+                print('✅ Сессия создана: ${session.id}, код: ${session.joinCode}');
 
                 // Закрыть диалог создания
                 Navigator.pop(context);
@@ -123,7 +123,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   }
                 });
               } catch (e) {
-                debugPrint('❌ Ошибка создания сессии: $e');
+                print('❌ Ошибка создания сессии: $e');
                 if (mounted) {
                   setState(() => _errorMessage = 'Ошибка: $e');
                 }
@@ -141,14 +141,14 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 
   void _showJoinCodeDialog(Session session) {
-    debugPrint('🔥🔥🔥 ВЫЗЫВАЮ _showJoinCodeDialog! Код: ${session.joinCode}');
+    print('🔥🔥🔥 ВЫЗЫВАЮ _showJoinCodeDialog! Код: ${session.joinCode}');
 
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
-          debugPrint('🔥🔥🔥 Строю AlertDialog');
+          print('🔥🔥🔥 Строю AlertDialog');
           return AlertDialog(
             backgroundColor: Colors.grey[850],
             title: const Text(
@@ -199,14 +199,14 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  debugPrint('👉 Нажата кнопка "Закрыть"');
+                  print('👉 Нажата кнопка "Закрыть"');
                   Navigator.pop(dialogContext);
                 },
                 child: const Text('Закрыть'),
               ),
               ElevatedButton(
                 onPressed: () {
-                  debugPrint('👉👉👉 Нажата кнопка "К сессии (DM)"!!!');
+                  print('👉👉👉 Нажата кнопка "К сессии (DM)"!!!');
                   Navigator.pop(dialogContext);
                   _navigateToDMScreen(session);
                 },
@@ -216,9 +216,9 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
           );
         },
       );
-      debugPrint('🔥🔥🔥 showDialog вызван');
+      print('🔥🔥🔥 showDialog вызван');
     } catch (e) {
-      debugPrint('🔥🔥🔥 ОШИБКА в _showJoinCodeDialog: $e');
+      print('🔥🔥🔥 ОШИБКА в _showJoinCodeDialog: $e');
     }
   }
 
