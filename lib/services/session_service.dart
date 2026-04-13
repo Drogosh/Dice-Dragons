@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:flutter/foundation.dart';
 import '../models/session.dart';
+import '../models/request.dart';
+import '../models/character.dart';
 import 'dart:math';
 
 class SessionService {
@@ -10,6 +12,7 @@ class SessionService {
 
   static const String _sessionsCollection = 'sessions';
   static const String _membersSubcollection = 'members';
+  static const String _requestsSubcollection = 'requests';
 
   /// Генерировать уникальный код присоединения (6 символов)
   String _generateJoinCode() {
@@ -463,18 +466,147 @@ class SessionService {
     });
   }
 
-  /// Слушать членов сессии в реальном времени
-  Stream<List<SessionMember>> watchMembers(String sessionId) {
-    return _firestore
-        .collection(_sessionsCollection)
-        .doc(sessionId)
-        .collection(_membersSubcollection)
-        .snapshots()
-        .map((query) {
-      return query.docs
-          .map((doc) => SessionMember.fromMap(doc.id, doc.data()))
-          .toList();
-    });
-  }
-}
+   /// Слушать членов сессии в реальном времени
+   Stream<List<SessionMember>> watchMembers(String sessionId) {
+     return _firestore
+         .collection(_sessionsCollection)
+         .doc(sessionId)
+         .collection(_membersSubcollection)
+         .snapshots()
+         .map((query) {
+       return query.docs
+           .map((doc) => SessionMember.fromMap(doc.id, doc.data()))
+           .toList();
+     });
+   }
+
+   /// Создать запрос с автоматическим расчетом модификатора
+   Future<Request> createRequest({
+     required String sessionId,
+     required Character character,
+     required RequestType type,
+     required String baseFormula,
+     int? targetAc,
+     String? note,
+     AbilityType? abilityType,
+   }) async {
+     try {
+       final user = _auth.currentUser;
+       if (user == null) throw Exception('User not authenticated');
+
+       // Создаем запрос с автоматическим расчетом модификатора
+       final request = Request.createWithAutoModifier(
+         sessionId: sessionId,
+         dmId: user.uid,
+         character: character,
+         type: type,
+         baseFormula: baseFormula,
+         targetAc: targetAc,
+         note: note,
+         abilityType: abilityType,
+       );
+
+       // Сохраняем в Firestore
+       final docRef = _firestore
+           .collection(_sessionsCollection)
+           .doc(sessionId)
+           .collection(_requestsSubcollection)
+           .doc();
+
+       final requestWithId = request.copyWith(id: docRef.id);
+
+       await docRef.set(requestWithId.toMap());
+
+       debugPrint('✅ Request created: ${request.type.toString()} with modifier: ${request.modifier}');
+       return requestWithId;
+     } catch (e) {
+       debugPrint('❌ Error creating request: $e');
+       rethrow;
+     }
+   }
+
+   /// Получить запросы сессии
+   Future<List<Request>> getRequests(String sessionId) async {
+     try {
+       final query = await _firestore
+           .collection(_sessionsCollection)
+           .doc(sessionId)
+           .collection(_requestsSubcollection)
+           .orderBy('createdAt', descending: true)
+           .get();
+
+       final requests = <Request>[];
+       for (final doc in query.docs) {
+         try {
+           requests.add(Request.fromMap(doc.data()));
+         } catch (e) {
+           debugPrint('⚠️  Error parsing request: $e');
+         }
+       }
+
+       return requests;
+     } catch (e) {
+       debugPrint('❌ Error getting requests: $e');
+       return [];
+     }
+   }
+
+   /// Слушать запросы в реальном времени
+   Stream<List<Request>> watchRequests(String sessionId) {
+     return _firestore
+         .collection(_sessionsCollection)
+         .doc(sessionId)
+         .collection(_requestsSubcollection)
+         .orderBy('createdAt', descending: true)
+         .snapshots()
+         .map((query) {
+       return query.docs
+           .map((doc) {
+             try {
+               return Request.fromMap(doc.data());
+             } catch (e) {
+               debugPrint('⚠️  Error parsing request: $e');
+               return null;
+             }
+           })
+           .whereType<Request>()
+           .toList();
+     });
+   }
+
+   /// Закрыть запрос
+   Future<void> closeRequest(String sessionId, String requestId) async {
+     try {
+       await _firestore
+           .collection(_sessionsCollection)
+           .doc(sessionId)
+           .collection(_requestsSubcollection)
+           .doc(requestId)
+           .update({'status': 'closed'});
+
+       debugPrint('✅ Request closed: $requestId');
+     } catch (e) {
+       debugPrint('❌ Error closing request: $e');
+       rethrow;
+     }
+   }
+
+   /// Удалить запрос
+   Future<void> deleteRequest(String sessionId, String requestId) async {
+     try {
+       await _firestore
+           .collection(_sessionsCollection)
+           .doc(sessionId)
+           .collection(_requestsSubcollection)
+           .doc(requestId)
+           .delete();
+
+       debugPrint('✅ Request deleted: $requestId');
+     } catch (e) {
+       debugPrint('❌ Error deleting request: $e');
+       rethrow;
+     }
+   }
+ }
+
 

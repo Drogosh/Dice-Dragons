@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'item.dart';
 
 enum Skill {
@@ -290,10 +291,12 @@ class Character {
       final conModifier = getConstitutionModifier();
       int newHP = hitDice + conModifier;
 
-      print('🔄 Пересчет HP для персонажа "$name"');
-      print('   Hit Dice: $hitDice');
-      print('   Constitution Modifier: $conModifier');
-      print('   HP: $hitDice + $conModifier = $newHP');
+      if (kDebugMode) {
+        debugPrint('🔄 Пересчет HP для персонажа "$name"');
+        debugPrint('   Hit Dice: $hitDice');
+        debugPrint('   Constitution Modifier: $conModifier');
+        debugPrint('   HP: $hitDice + $conModifier = $newHP');
+      }
 
       return newHP;
     }
@@ -336,7 +339,7 @@ class Character {
        equippedItems['shieldId'] = equippedShield!.id;
      }
      equippedItems['weaponIds'] = equippedWeapons
-         .map((weapon) => weapon != null ? weapon.id : null)
+         .map((weapon) => weapon?.id)
          .toList();
 
        return {
@@ -419,7 +422,9 @@ class Character {
      // Восстанавливаем надетые предметы
      if (map['equippedItems'] is Map) {
        final equipped = map['equippedItems'] as Map<String, dynamic>;
-       print('📦 ЗАГРУЖАЮ ID НАДЕТЫХ ПРЕДМЕТОВ из Map');
+       if (kDebugMode) {
+         debugPrint('📦 ЗАГРУЖАЮ ID НАДЕТЫХ ПРЕДМЕТОВ из Map');
+       }
 
        // Сохраняем ID для восстановления позже (в MainNavigationScreen)
        if (equipped['armorId'] is String) {
